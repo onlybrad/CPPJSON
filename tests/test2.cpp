@@ -10,7 +10,7 @@ int main() {
     auto json = CJSON::JSON::parse(data);
     const long end = CJSON::usec_timestamp();
 
-    std::cout << "Execution time: " << end - start << " milliseconds\n";
+    std::cout << "Execution time: " << end - start << "\n";
 
     delete data;
     
