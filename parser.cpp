@@ -263,9 +263,9 @@ bool JSON_Node::parseArray(Tokens &tokens) {
     }
 
     Array &array = makeArray();
-    Token &token = tokens.data[tokens.index];
+    Token *token = &tokens.data[tokens.index];
 
-    if(token.type == TokenType::RBRACKET) {
+    if(token->type == TokenType::RBRACKET) {
         tokens.index++;
         return true;
     }
@@ -287,15 +287,15 @@ bool JSON_Node::parseArray(Tokens &tokens) {
             return false;
         }
 
-        token = tokens.data[tokens.index];
+        token = &tokens.data[tokens.index];
  
-        if(token.type == TokenType::COMMA) {
+        if(token->type == TokenType::COMMA) {
             tokens.index++;
-            token = tokens.data[tokens.index];
+            token++;
             continue;
         }
 
-        if(token.type == TokenType::RBRACKET) {
+        if(token->type == TokenType::RBRACKET) {
             tokens.index++;
             return true;
         }
@@ -322,15 +322,15 @@ bool JSON_Node::parseObject(Tokens &tokens) {
     }
 
     Object &object = makeObject();
-    Token &token = tokens.data[tokens.index];
+    Token *token = &tokens.data[tokens.index];
 
-    if(token.type == TokenType::RCURLY) {
+    if(token->type == TokenType::RCURLY) {
         tokens.index++;
         return true;
     }
 
     while(tokens.index + 4U < tokens.data.size()) {
-        if(token.type != TokenType::STRING) {
+        if(token->type != TokenType::STRING) {
             object.~Object();
             m_type = Type::ERROR;
             m_value.error = Error::OBJECT_INVALID_KEY;
@@ -338,7 +338,7 @@ bool JSON_Node::parseObject(Tokens &tokens) {
         }
 
         bool success;
-        std::string key = parseUtf8String(token, success);
+        std::string key = parseUtf8String(*token, success);
         if(!success) {
             object.~Object();
             m_type = Type::ERROR;
@@ -346,13 +346,14 @@ bool JSON_Node::parseObject(Tokens &tokens) {
             return false;
         }
 
-        token = tokens.data[tokens.index + 1U];
+        token++;
     
-        if(token.type != TokenType::COLON) {
+        if(token->type != TokenType::COLON) {
             object.~Object();
             m_type = Type::ERROR;
             m_value.error = Error::OBJECT_MISSING_COLON;
             tokens.index++;
+            return false;
         }
 
         tokens.index += 2U;
@@ -374,17 +375,18 @@ bool JSON_Node::parseObject(Tokens &tokens) {
             } else {
                 m_value.error = error;
             }
+            return false;
         }
 
-        token = tokens.data[tokens.index];
+        token = &tokens.data[tokens.index];
 
-        if(token.type == TokenType::COMMA) {
+        if(token->type == TokenType::COMMA) {
             tokens.index++;
-            token = tokens.data[tokens.index];
+            token++;
             continue;
         }
 
-        if(token.type == TokenType::RCURLY) {
+        if(token->type == TokenType::RCURLY) {
             tokens.index++;
             return true;
         }
