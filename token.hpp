@@ -31,7 +31,6 @@ struct Token {
     Token();
     Token(Token &&other);
     ~Token();
-    Token &operator=(const CJSON::Token &other) = default;
 };
 
 struct Tokens {
