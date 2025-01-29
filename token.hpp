@@ -5,9 +5,6 @@
 
 namespace CJSON {
 
-class JSON_Node;
-class JSON;
-
 enum class TokenType {
     LCURLY,
     RCURLY,

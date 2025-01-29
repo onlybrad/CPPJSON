@@ -206,7 +206,6 @@ bool JSON_Node::parseNumber(Tokens &tokens) {
                 return false;     
             }
 
-
             m_type = Type::INT64;
             m_value.int64 = int64;
         }

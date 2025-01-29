@@ -20,7 +20,6 @@ class Lexer {
 public:
     Lexer(const std::string &data);
     bool tokenize(Token &token);
-
 };
 
 }
