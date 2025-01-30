@@ -19,9 +19,9 @@ JSON_Node::JSON_Node(JSON_Node &&other) : m_type(other.m_type) {
 JSON_Node::~JSON_Node() {
     switch(m_type) {
     case Type::OBJECT:
-        m_value.object.~Object(); break;
+        m_value.object.destroy(); break;
     case Type::ARRAY:
-        m_value.array.~Array(); break;
+        m_value.array.destroy(); break;
     case Type::STRING:
         m_value.string.~basic_string(); break;
     default:;
@@ -29,6 +29,10 @@ JSON_Node::~JSON_Node() {
 
     m_type = Type::NULL_T;
     m_value.null = nullptr;
+}
+
+Type JSON_Node::type() {
+    return m_type; 
 }
 
 JSON::JSON() {}
@@ -270,12 +274,12 @@ bool JSON_Node::parseArray(Tokens &tokens) {
     }
 
     while(tokens.index + 2U < tokens.data.size()) {
-        array.emplace_back();
-        JSON_Node &next = array.back();
+        array.m_data.emplace_back();
+        JSON_Node &next = array.m_data.back();
 
         if(!next.parseTokens(tokens)) {
             const Error error = next.m_value.error;
-            array.~Array();
+            array.destroy();
             m_type = Type::ERROR;
             
             if(error == Error::TOKEN_ERROR) {
@@ -299,13 +303,13 @@ bool JSON_Node::parseArray(Tokens &tokens) {
             return true;
         }
 
-        array.~Array();
+        array.destroy();
         m_type = Type::ERROR;
         m_value.error = Error::ARRAY_MISSING_COMMA_OR_RBRACKET;
         return false;
     }
 
-    array.~Array();
+    array.destroy();
     m_type = Type::ERROR;
     m_value.error = Error::ARRAY_FAILED_TO_PARSE;
     return false;
@@ -330,7 +334,7 @@ bool JSON_Node::parseObject(Tokens &tokens) {
 
     while(tokens.index + 4U < tokens.data.size()) {
         if(token->type != TokenType::STRING) {
-            object.~Object();
+            object.destroy();
             m_type = Type::ERROR;
             m_value.error = Error::OBJECT_INVALID_KEY;
             return false;
@@ -339,7 +343,7 @@ bool JSON_Node::parseObject(Tokens &tokens) {
         bool success;
         std::string key = parseUtf8String(*token, success);
         if(!success) {
-            object.~Object();
+            object.destroy();
             m_type = Type::ERROR;
             m_value.error = Error::OBJECT_INVALID_KEY;
             return false;
@@ -348,7 +352,7 @@ bool JSON_Node::parseObject(Tokens &tokens) {
         token++;
     
         if(token->type != TokenType::COLON) {
-            object.~Object();
+            object.destroy();
             m_type = Type::ERROR;
             m_value.error = Error::OBJECT_MISSING_COLON;
             tokens.index++;
@@ -357,16 +361,11 @@ bool JSON_Node::parseObject(Tokens &tokens) {
 
         tokens.index += 2U;
 
-        auto it = object.find(key);
-        JSON_Node &node = it != object.end() ? it->second : object[key];
-
-        if(it != object.end()) {
-            node.~JSON_Node();
-        }
+        JSON_Node &node = object.m_data[std::move(key)]; 
 
         if(!node.parseTokens(tokens)) {
             const Error error = node.m_value.error;
-            object.~Object();
+            object.destroy();
             m_type = Type::ERROR;
 
             if(error == Error::TOKEN_ERROR) {
@@ -400,11 +399,20 @@ bool JSON_Node::parseObject(Tokens &tokens) {
     return false; 
 }
 
+JSON_Node &JSON_Node::operator=(JSON_Node &&other) {
+    if(this != &other) {
+        std::memcpy((unsigned char*)&m_value, (unsigned char*)&other.m_value, sizeof(Data));
+        other.m_type = Type::NULL_T;
+        other.m_value.null = nullptr;
+    }
+
+    return *this;
+}
+
 Array &JSON_Node::makeArray() {
     this->~JSON_Node();
     m_type = Type::ARRAY;
     new (&m_value.array) Array();
-    m_value.array.reserve(1 << 3);
 
     return m_value.array;
 }
@@ -413,7 +421,6 @@ Object &JSON_Node::makeObject() {
     this->~JSON_Node();
     m_type = Type::OBJECT;
     new (&m_value.object) Object();
-    m_value.object.reserve(1 << 3);
 
     return m_value.object;
 }
