@@ -8,7 +8,7 @@ namespace CJSON {
 Data::Data() : null(nullptr) {}
 Data::~Data() {}
 
-JSON_Node::JSON_Node(JSON_Node &&other) : m_type(other.m_type) {
+Node::Node(Node &&other) : m_type(other.m_type) {
     if(this != &other) {
         std::memcpy((unsigned char*)&m_value, (unsigned char*)&other.m_value, sizeof(Data));
         other.m_type = Type::NULL_T;
@@ -16,7 +16,7 @@ JSON_Node::JSON_Node(JSON_Node &&other) : m_type(other.m_type) {
     }
 }
 
-JSON_Node::~JSON_Node() {
+Node::~Node() {
     switch(m_type) {
     case Type::OBJECT:
         m_value.object.destroy(); break;
@@ -31,13 +31,13 @@ JSON_Node::~JSON_Node() {
     m_value.null = nullptr;
 }
 
-Type JSON_Node::type() {
+Type Node::type() const {
     return m_type; 
 }
 
 JSON::JSON() {}
 
-std::string JSON_Node::parseUtf8String(const Token &token, bool &success) {
+std::string Node::parseUtf8String(const Token &token, bool &success) {
     std::string string;
     string.reserve(token.value.size - 1U);
 
@@ -157,7 +157,7 @@ std::string JSON_Node::parseUtf8String(const Token &token, bool &success) {
     return string;
 }
 
-bool JSON_Node::parseString(Tokens &tokens) {
+bool Node::parseString(Tokens &tokens) {
     const Token &token = tokens.data[tokens.index]; 
     bool success;
 
@@ -174,7 +174,7 @@ bool JSON_Node::parseString(Tokens &tokens) {
     return success;
 }
 
-bool JSON_Node::parseNumber(Tokens &tokens) {
+bool Node::parseNumber(Tokens &tokens) {
     std::string string;
     bool success;
     const Token &token = tokens.data[tokens.index]; 
@@ -240,7 +240,7 @@ bool JSON_Node::parseNumber(Tokens &tokens) {
     return true;
 }
 
-void JSON_Node::parseBool(Tokens &tokens) {
+void Node::parseBool(Tokens &tokens) {
     const Token &token = tokens.data[tokens.index]; 
 
     m_type = Type::BOOL;
@@ -249,14 +249,14 @@ void JSON_Node::parseBool(Tokens &tokens) {
     tokens.index++;
 }
 
-void JSON_Node::parseNull(Tokens &tokens) {
+void Node::parseNull(Tokens &tokens) {
     m_type = Type::NULL_T;
     m_value.null = NULL;
 
     tokens.index++;
 }
 
-bool JSON_Node::parseArray(Tokens &tokens) {
+bool Node::parseArray(Tokens &tokens) {
     tokens.index++;
 
     if(tokens.data.size() == tokens.index) {
@@ -274,8 +274,8 @@ bool JSON_Node::parseArray(Tokens &tokens) {
     }
 
     while(tokens.index + 2U < tokens.data.size()) {
-        array.m_data.emplace_back();
-        JSON_Node &next = array.m_data.back();
+        array.m_nodes.emplace_back();
+        Node &next = array.m_nodes.back();
 
         if(!next.parseTokens(tokens)) {
             const Error error = next.m_value.error;
@@ -315,7 +315,7 @@ bool JSON_Node::parseArray(Tokens &tokens) {
     return false;
 }
 
-bool JSON_Node::parseObject(Tokens &tokens) {
+bool Node::parseObject(Tokens &tokens) {
     tokens.index++;
 
     if(tokens.data.size() == tokens.index) {
@@ -361,7 +361,7 @@ bool JSON_Node::parseObject(Tokens &tokens) {
 
         tokens.index += 2U;
 
-        JSON_Node &node = object.m_data[std::move(key)]; 
+        Node &node = object.m_nodes[std::move(key)]; 
 
         if(!node.parseTokens(tokens)) {
             const Error error = node.m_value.error;
@@ -399,7 +399,7 @@ bool JSON_Node::parseObject(Tokens &tokens) {
     return false; 
 }
 
-JSON_Node &JSON_Node::operator=(JSON_Node &&other) {
+Node &Node::operator=(Node &&other) {
     if(this != &other) {
         std::memcpy((unsigned char*)&m_value, (unsigned char*)&other.m_value, sizeof(Data));
         other.m_type = Type::NULL_T;
@@ -409,31 +409,31 @@ JSON_Node &JSON_Node::operator=(JSON_Node &&other) {
     return *this;
 }
 
-Array &JSON_Node::makeArray() {
-    this->~JSON_Node();
+Array &Node::makeArray() {
+    this->~Node();
     m_type = Type::ARRAY;
     new (&m_value.array) Array();
 
     return m_value.array;
 }
 
-Object &JSON_Node::makeObject() {
-    this->~JSON_Node();
+Object &Node::makeObject() {
+    this->~Node();
     m_type = Type::OBJECT;
     new (&m_value.object) Object();
 
     return m_value.object;
 }
 
-std::string &JSON_Node::makeString() {
-    this->~JSON_Node();
+std::string &Node::makeString() {
+    this->~Node();
     m_type = Type::STRING;
     new (&m_value.string) std::string();
 
     return m_value.string;
 }
 
-bool JSON_Node::parseTokens(Tokens &tokens) {
+bool Node::parseTokens(Tokens &tokens) {
     const Token &token = tokens.data[tokens.index]; 
 
     switch(token.type) {

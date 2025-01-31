@@ -9,7 +9,7 @@
 
 namespace CJSON {
 
-class JSON_Node;
+class Node;
 class Array;
 class Object;
 
@@ -58,12 +58,12 @@ enum class ArrayParsingError {
 
 class Array {
     friend class Object;
-    friend class JSON_Node;
+    friend class Node;
 
-    std::vector<JSON_Node> m_data;
+    std::vector<Node> m_nodes;
 
 public:
-    JSON_Node *get(const unsigned int index, bool &success);
+    Node *get(const unsigned int index, bool &success);
     Array *getArray(const unsigned int index, bool &success);
     Object *getObject(const unsigned int index, bool &success);
     int64_t getInt64(const unsigned int index, bool &success);
@@ -73,7 +73,7 @@ public:
     std::string *getString(const unsigned int index, bool &success);
     std::nullptr_t getNull(const unsigned int index, bool &success);
 
-    void set(const unsigned int index, JSON_Node &&node);
+    void set(const unsigned int index, Node &&node);
     void set(const unsigned int index, Array &&value);
     void set(const unsigned int index, Object &&value);
     void set(const unsigned int index, const int64_t value);
@@ -103,13 +103,13 @@ public:
 
 class Object {
     friend class Array;
-    friend class JSON_Node;
+    friend class Node;
 
-    std::unordered_map<std::string, JSON_Node> m_data;
+    std::unordered_map<std::string, Node> m_nodes;
 
 public:
-    JSON_Node *operator[](std::string &key);
-    JSON_Node *get(std::string &key, bool &success);
+    Node *operator[](std::string &key);
+    Node *get(std::string &key, bool &success);
     Array *getArray(std::string &key, bool &success);
     Object *getObject(std::string &key, bool &success);
     int64_t getInt64(std::string &key, bool &success);
@@ -119,7 +119,7 @@ public:
     std::string *getString(std::string &key, bool &success);
     std::nullptr_t getNull(std::string &key, bool &success);
 
-    void set(std::string &key, JSON_Node &&value);
+    void set(std::string &key, Node &&value);
     void set(std::string &key, Array &&value);
     void set(std::string &key, Object &&value);
     void set(std::string &key, const int64_t value);
@@ -129,7 +129,7 @@ public:
     void set(std::string &key, std::string &&value);
     void set(std::string &key, std::nullptr_t null);
 
-    void set(std::string &&key, JSON_Node &&value);
+    void set(std::string &&key, Node &&value);
     void set(std::string &&key, Array &&value);
     void set(std::string &&key, Object &&value);
     void set(std::string &&key, const int64_t value);
@@ -146,7 +146,6 @@ public:
     Object(Object &&other);
 };
 
-
 union Data {
     std::string string;
     double      float64;
@@ -162,7 +161,7 @@ union Data {
     ~Data(); 
 };
 
-class JSON_Node {
+class Node {
 protected:
     friend class Array;
     friend class Object;
@@ -179,21 +178,21 @@ protected:
     bool parseTokens(Tokens &tokens);
 
 public:
-    JSON_Node() = default;
-    JSON_Node(JSON_Node &&other);
-    ~JSON_Node();
+    Node() = default;
+    Node(Node &&other);
+    ~Node();
 
-    JSON_Node &operator=(JSON_Node &&other);
+    Node &operator=(Node &&other);
 
     Array &makeArray();
     Object &makeObject();
     std::string &makeString();
 
-    Type type();
+    Type type() const;
 };
 
 
-class JSON : public JSON_Node {
+class JSON : public Node {
     Tokens m_tokens;
     JSON();
 public:
