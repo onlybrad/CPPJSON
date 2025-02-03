@@ -2,19 +2,19 @@
 #include <assert.h>
 #include "../parser.hpp"
 
-static void test_empty_object(void) {
+static void test_empty_object() {
     const std::string emptyObject = "{}";
     auto root = CJSON::JSON::parse(emptyObject);
     assert(root->type() == CJSON::Type::OBJECT);
 }
 
-static void test_empty_array(void) {
+static void test_empty_array() {
     const std::string emptyArray = "[]";
     auto root = CJSON::JSON::parse(emptyArray);
     assert(root->type() == CJSON::Type::ARRAY);
 }
 
-static void test_primitive_values(void) {
+static void test_primitive_values() {
     const std::string string = "\"\"";
     auto root = CJSON::JSON::parse(string);
     assert(root->type() == CJSON::Type::STRING);
@@ -51,7 +51,7 @@ static void test_primitive_values(void) {
     assert(root->value().null == NULL);
 }
 
-static void test_key_value(void) {
+static void test_key_value() {
     const std::string keyValue = "{\"key\": \"value\"}";
     auto root = CJSON::JSON::parse(keyValue);
     assert(root->type() == CJSON::Type::OBJECT);
@@ -66,7 +66,7 @@ static void test_key_value(void) {
     assert(*value == "value");
 }
 
-static void test_nested_objects(void) {
+static void test_nested_objects() {
     const std::string nestedObjects = "{"
         "\"key1\": {\"innerKey\": \"innerValue\"},"
         "\"key2\": \"value\""
@@ -95,7 +95,7 @@ static void test_nested_objects(void) {
     assert(innerValue->value().string == "value");
 }
 
-static void test_object_array(void) {
+static void test_object_array() {
     std::string objectArray = "["
         "{\"key1\": \"value1\"},"
         "{\"key2\": \"value2\"}"
@@ -123,7 +123,7 @@ static void test_object_array(void) {
     assert(*value == "value2");
 }
 
-static void test_escaped_characters(void) {
+static void test_escaped_characters() {
     const std::string escapedCharacters = "{\"key\": \"Line 1\\nLine 2\\\\\"}";
 
     auto root = CJSON::JSON::parse(escapedCharacters);
@@ -135,7 +135,7 @@ static void test_escaped_characters(void) {
     assert((*value)[6] == '\n');   
 }
 
-static void test_escaped_unicode(void) {
+static void test_escaped_unicode() {
     const std::string escapedUnicode = "{\"key\": \"Unicode test: \\u00A9\\u03A9\\uD840\\uDC00\"}";
 
     auto root = CJSON::JSON::parse(escapedUnicode);
@@ -157,7 +157,7 @@ static void test_escaped_unicode(void) {
     assert((*value)[21] == -128);
 }
 
-static void test_bools(void) {
+static void test_bools() {
     const std::string bools = "{\"isTrue\": true, \"isFalse\": false}";
 
     auto root = CJSON::JSON::parse(bools);
@@ -174,7 +174,7 @@ static void test_bools(void) {
     assert(!node->value().boolean);
 }
 
-static void test_exponent(void) {
+static void test_exponent() {
     const std::string exponent = "{\"largeNumber\": 1e15, \"negativeLarge\": -1e15}";
 
     auto root = CJSON::JSON::parse(exponent);
@@ -190,7 +190,7 @@ static void test_exponent(void) {
     assert(negative_number == (int64_t)-1e15);
 }
 
-static void test_null(void) {
+static void test_null() {
     const std::string nullValue = "{\"key\": null}";
 
     auto root = CJSON::JSON::parse(nullValue);
@@ -207,7 +207,7 @@ static void test_null(void) {
     assert(null == nullptr);
 }
 
-static void test_missing_value(void) {
+static void test_missing_value() {
     const std::string missingKey = "{\"key1\": \"value1\", \"key2\": }";
 
     auto root = CJSON::JSON::parse(missingKey);
@@ -215,7 +215,7 @@ static void test_missing_value(void) {
     assert(root->value().error == CJSON::Error::OBJECT_FAILED_TO_PARSE);
 }
 
-static void test_comments(void) {
+static void test_comments() {
     const std::string comments = "{"
         "// This is a comment"
         "\"key\": \"value\""
@@ -226,7 +226,7 @@ static void test_comments(void) {
     assert(root->value().error == CJSON::Error::TOKEN_ERROR);
 }
 
-static void test_deep_nesting(void) {
+static void test_deep_nesting() {
     const std::string deepNesting = "{\"key1\": {\"key2\": {\"key3\": {\"key4\": {\"key5\": \"value\"}}}}}";
 
     auto root = CJSON::JSON::parse(deepNesting);
@@ -238,7 +238,7 @@ static void test_deep_nesting(void) {
     assert(*value == "value");
 }
 
-static void test_no_quotes_key(void) {
+static void test_no_quotes_key() {
     const std::string noQuotesKey = "{ key: 1 }";
 
     auto root = CJSON::JSON::parse(noQuotesKey);
@@ -246,7 +246,7 @@ static void test_no_quotes_key(void) {
     assert(root->value().error == CJSON::Error::TOKEN_ERROR);
 }
 
-static void test_nested_arrays(void) {
+static void test_nested_arrays() {
     const std::string nestedArrays = "[[1, 2, [3, 4]], [5, 6]]";
 
     auto root = CJSON::JSON::parse(nestedArrays);
@@ -303,7 +303,7 @@ static void test_nested_arrays(void) {
     assert(level2_node->value().uint64 == 6U);
 }
 
-static void test_duplicate_keys(void) {
+static void test_duplicate_keys() {
     const std::string duplicatedKeys = "{\"key\": \"value1\", \"key\": \"value2\"}";
 
     auto root = CJSON::JSON::parse(duplicatedKeys);
