@@ -17,22 +17,15 @@ Node::Node(Node &&other) : m_type(other.m_type) {
 }
 
 Node::~Node() {
-    switch(m_type) {
-    case Type::OBJECT:
-        m_value.object.destroy(); break;
-    case Type::ARRAY:
-        m_value.array.destroy(); break;
-    case Type::STRING:
-        m_value.string.~basic_string(); break;
-    default:;
-    }
-
-    m_type = Type::NULL_T;
-    m_value.null = nullptr;
+    destroy();
 }
 
 Type Node::type() const {
     return m_type; 
+}
+
+Data &Node::value() {
+    return m_value;
 }
 
 JSON::JSON() {}
@@ -410,7 +403,7 @@ Node &Node::operator=(Node &&other) {
 }
 
 Array &Node::makeArray() {
-    this->~Node();
+    destroy();
     m_type = Type::ARRAY;
     new (&m_value.array) Array();
 
@@ -418,7 +411,7 @@ Array &Node::makeArray() {
 }
 
 Object &Node::makeObject() {
-    this->~Node();
+    destroy();
     m_type = Type::OBJECT;
     new (&m_value.object) Object();
 
@@ -426,11 +419,36 @@ Object &Node::makeObject() {
 }
 
 std::string &Node::makeString() {
-    this->~Node();
+    destroy();
     m_type = Type::STRING;
     new (&m_value.string) std::string();
 
     return m_value.string;
+}
+
+void Node::destroy() {
+    switch(m_type) {
+    case Type::OBJECT:
+        m_value.object.destroy(); break;
+    case Type::ARRAY:
+        m_value.array.destroy(); break;
+    case Type::STRING:
+        m_value.string.~basic_string(); break;
+    default:;
+    }
+
+    m_type = Type::NULL_T;
+    m_value.null = nullptr;
+}
+
+Query Node::operator[](const unsigned int index) {
+    Query query(this);
+    return query[index];
+}
+
+Query Node::operator[](const std::string &key) {
+    Query query(this);
+    return query[key];
 }
 
 bool Node::parseTokens(Tokens &tokens) {

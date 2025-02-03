@@ -42,18 +42,23 @@ enum class Error {
     FAILED_TO_OPEN_FILE
 };
 
-enum class ObjectParsingError {
-    KeyError,
-    ColonError,
-    ValueError,
-    CommaError,
-    IncompleteError,
-};
-
-enum class ArrayParsingError {
-    ValueError,
-    CommaError,
-    IncompleteError
+class Query {
+    Node *m_node;
+    
+public:
+    Query() = delete;
+    Query(Node *node);
+    Query operator[](const unsigned int index);
+    Query operator[](const std::string &key);
+    Node *get();
+    Array *getArray(bool &success);
+    Object *getObject(bool &success);
+    int64_t getInt64(bool &success);
+    uint64_t getUint64(bool &success);
+    double getFloat64(bool &success);
+    bool getBool(bool &success);
+    std::string *getString(bool &success);
+    std::nullptr_t getNull(bool &success);
 };
 
 class Array {
@@ -108,26 +113,26 @@ class Object {
     std::unordered_map<std::string, Node> m_nodes;
 
 public:
-    Node *operator[](std::string &key);
-    Node *get(std::string &key, bool &success);
-    Array *getArray(std::string &key, bool &success);
-    Object *getObject(std::string &key, bool &success);
-    int64_t getInt64(std::string &key, bool &success);
-    uint64_t getUint64(std::string &key, bool &success);
-    double getFloat64(std::string &key, bool &success);
-    bool getBool(std::string &key, bool &success);
-    std::string *getString(std::string &key, bool &success);
-    std::nullptr_t getNull(std::string &key, bool &success);
+    Node *operator[](const std::string &key);
+    Node *get(const std::string &key, bool &success);
+    Array *getArray(const std::string &key, bool &success);
+    Object *getObject(const std::string &key, bool &success);
+    int64_t getInt64(const std::string &key, bool &success);
+    uint64_t getUint64(const std::string &key, bool &success);
+    double getFloat64(const std::string &key, bool &success);
+    bool getBool(const std::string &key, bool &success);
+    std::string *getString(const std::string &key, bool &success);
+    std::nullptr_t getNull(const std::string &key, bool &success);
 
-    void set(std::string &key, Node &&value);
-    void set(std::string &key, Array &&value);
-    void set(std::string &key, Object &&value);
-    void set(std::string &key, const int64_t value);
-    void set(std::string &key, const uint64_t value);
-    void set(std::string &key, const double value);
-    void set(std::string &key, const bool value);
-    void set(std::string &key, std::string &&value);
-    void set(std::string &key, std::nullptr_t null);
+    void set(const std::string &key, Node &&value);
+    void set(const std::string &key, Array &&value);
+    void set(const std::string &key, Object &&value);
+    void set(const std::string &key, const int64_t value);
+    void set(const std::string &key, const uint64_t value);
+    void set(const std::string &key, const double value);
+    void set(const std::string &key, const bool value);
+    void set(const std::string &key, std::string &&value);
+    void set(const std::string &key, std::nullptr_t null);
 
     void set(std::string &&key, Node &&value);
     void set(std::string &&key, Array &&value);
@@ -187,8 +192,13 @@ public:
     Array &makeArray();
     Object &makeObject();
     std::string &makeString();
+    void destroy();
+
+    Query operator[](const unsigned int index);
+    Query operator[](const std::string &key);
 
     Type type() const;
+    Data &value();
 };
 
 
@@ -197,6 +207,7 @@ class JSON : public Node {
     JSON();
 public:
     static std::unique_ptr<JSON> parse(const std::string &data);
+    ~JSON() = default;
 };
 
 }
