@@ -152,15 +152,15 @@ public:
 };
 
 union Data {
-    std::string string;
-    double      float64;
-    int64_t     int64;
-    uint64_t    uint64;
-    Array       array;
-    Object      object;
-    void        *null;
-    bool        boolean;
-    Error       error;
+    std::string    string;
+    double         float64;
+    int64_t        int64;
+    uint64_t       uint64;
+    Array          array;
+    Object         object;
+    std::nullptr_t null;
+    bool           boolean;
+    Error          error;
 
     Data();
     ~Data(); 
