@@ -382,11 +382,13 @@ bool Node::parseObject(Tokens &tokens) {
             return true;
         }
 
+        object.destroy();
         m_type = Type::ERROR;
         m_value.error = Error::ARRAY_MISSING_COMMA_OR_RBRACKET;
         return false;
     }
     
+    object.destroy();
     m_type = Type::ERROR;
     m_value.error = Error::OBJECT_FAILED_TO_PARSE;
     return false; 
