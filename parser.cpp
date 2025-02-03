@@ -394,6 +394,7 @@ bool Node::parseObject(Tokens &tokens) {
 
 Node &Node::operator=(Node &&other) {
     if(this != &other) {
+        m_type = other.m_type;
         std::memcpy((unsigned char*)&m_value, (unsigned char*)&other.m_value, sizeof(Data));
         other.m_type = Type::NULL_T;
         other.m_value.null = nullptr;
