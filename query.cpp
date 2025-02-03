@@ -39,43 +39,43 @@ Node *Query::get() {
 Array *Query::getArray(bool &success) {
     success = m_node != nullptr && m_node->type() == Type::ARRAY;
 
-    return &m_node->value().array;
+    return m_node == nullptr ? nullptr : &m_node->value().array;
 }
 
 Object *Query::getObject(bool &success) {
     success = m_node != nullptr && m_node->type() == Type::OBJECT;
 
-    return &m_node->value().object;
+    return m_node == nullptr ? nullptr : &m_node->value().object;
 }
 
 int64_t Query::getInt64(bool &success) {
     success = m_node != nullptr && m_node->type() == Type::INT64;
 
-    return m_node->value().int64;
+    return m_node == nullptr ? 0 : m_node->value().int64;
 }
 
 uint64_t Query::getUint64(bool &success) {
     success = m_node != nullptr && m_node->type() == Type::UINT64;
 
-    return m_node->value().uint64;
+    return m_node == nullptr ? 0U : m_node->value().uint64;
 }
 
 double Query::getFloat64(bool &success) {
     success = m_node != nullptr && m_node->type() == Type::FLOAT64;
 
-    return m_node->value().float64;  
+    return m_node == nullptr ? 0.0 : m_node->value().float64;  
 }
 
 bool Query::getBool(bool &success) {
     success = m_node != nullptr && m_node->type() == Type::BOOL;
 
-    return m_node->value().boolean;  
+    return m_node == nullptr ? false : m_node->value().boolean;  
 }
 
 std::string *Query::getString(bool &success) {
     success = m_node != nullptr && m_node->type() == Type::STRING;
 
-    return &m_node->value().string;  
+    return m_node == nullptr ? nullptr : &m_node->value().string;  
 }
 
 std::nullptr_t Query::getNull(bool &success) {
