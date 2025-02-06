@@ -2,6 +2,15 @@
 
 namespace CJSON {
 
+Object &Object::operator=(Object &&other) {
+    if(&other != this) {
+        m_nodes = std::move(other.m_nodes);
+        other.destroy();
+    }
+
+    return *this;
+}
+
 Node *Object::operator[](const std::string &key) {
     auto it = m_nodes.find(key);
 
@@ -266,10 +275,8 @@ Object::Object() {
 }
 
 Object::Object(Object &&other) {
-    if(&other != this) {
-        m_nodes = std::move(other.m_nodes);
-        other.destroy();
-    }
+    m_nodes = std::move(other.m_nodes);
+    other.destroy();
 }
 
 }

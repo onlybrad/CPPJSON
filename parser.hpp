@@ -68,6 +68,8 @@ class Array {
     std::vector<Node> m_nodes;
 
 public:
+    Array &operator=(Array &&other);
+
     Node *get(const unsigned int index, bool &success);
     Array *getArray(const unsigned int index, bool &success);
     Object *getObject(const unsigned int index, bool &success);
@@ -98,7 +100,6 @@ public:
     void push_back(std::nullptr_t null);
 
     unsigned int size();
-
     void destroy();
 
     Array();
@@ -113,7 +114,9 @@ class Object {
     std::unordered_map<std::string, Node> m_nodes;
 
 public:
+    Object &operator=(Object &&other);
     Node *operator[](const std::string &key);
+
     Node *get(const std::string &key, bool &success);
     Array *getArray(const std::string &key, bool &success);
     Object *getObject(const std::string &key, bool &success);

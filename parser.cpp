@@ -9,11 +9,9 @@ Data::Data() : null(nullptr) {}
 Data::~Data() {}
 
 Node::Node(Node &&other) : m_type(other.m_type) {
-    if(this != &other) {
-        std::memcpy((unsigned char*)&m_value, (unsigned char*)&other.m_value, sizeof(Data));
-        other.m_type = Type::NULL_T;
-        other.m_value.null = nullptr;
-    }
+    std::memcpy((unsigned char*)&m_value, (unsigned char*)&other.m_value, sizeof(Data));
+    other.m_type = Type::NULL_T;
+    other.m_value.null = nullptr;
 }
 
 Node::~Node() {

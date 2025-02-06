@@ -2,6 +2,15 @@
 
 namespace CJSON {
 
+Array &Array::operator=(Array &&other) {
+    if(&other != this) {
+        m_nodes = std::move(other.m_nodes);
+        other.destroy();
+    }
+
+    return *this;
+}  
+
 Node *Array::get(const unsigned int index, bool &success) {
     if(index >= m_nodes.size()) {
         success = false;
@@ -93,7 +102,7 @@ void Array::set(const unsigned int index, Array &&value) {
     }
     m_nodes[index].destroy();
     m_nodes[index].m_type = Type::ARRAY;
-    m_nodes[index].m_value.array.m_nodes = std::move(value.m_nodes);
+    m_nodes[index].m_value.array = std::move(value);
 }
 
 void Array::set(const unsigned int index, Object &&value) {
@@ -102,7 +111,7 @@ void Array::set(const unsigned int index, Object &&value) {
     }
     m_nodes[index].destroy();
     m_nodes[index].m_type = Type::OBJECT;
-    m_nodes[index].m_value.object.m_nodes = std::move(value.m_nodes);
+    m_nodes[index].m_value.object = std::move(value);
 }
 
 void Array::set(const unsigned int index, const int64_t value) {
@@ -163,14 +172,14 @@ void Array::push_back(Array &&value) {
     m_nodes.emplace_back();
     Node &node = m_nodes.back();
     node.m_type = Type::ARRAY;
-    node.m_value.array.m_nodes = std::move(value.m_nodes);
+    node.m_value.array = std::move(value);
 }
 
 void Array::push_back(Object &&value) {
     m_nodes.emplace_back();
     Node &node = m_nodes.back();
     node.m_type = Type::OBJECT;
-    node.m_value.object.m_nodes = std::move(value.m_nodes);
+    node.m_value.object = std::move(value);
 }
 
 void Array::push_back(const int64_t value) {
@@ -228,10 +237,8 @@ Array::Array() {
 }
 
 Array::Array(Array &&other) {
-    if(&other != this) {
-        m_nodes = std::move(other.m_nodes);
-        other.destroy();
-    }
+    m_nodes = std::move(other.m_nodes);
+    other.destroy();
 }
 
 }
