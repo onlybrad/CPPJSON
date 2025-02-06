@@ -66,7 +66,7 @@ bool Array::getBool(const unsigned int index, bool &success) {
 }
 
 std::string *Array::getString(const unsigned int index, bool &success) {
-        if(index >= m_nodes.size() || m_nodes[index].m_type == Type::STRING) {
+    if(index >= m_nodes.size() || m_nodes[index].m_type == Type::STRING) {
         success = false;
         return nullptr;
     }
