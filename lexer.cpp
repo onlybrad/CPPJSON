@@ -155,12 +155,10 @@ bool Lexer::isKeyword(const StringView keyword) {
     return false;
 }
 
-
+static const StringView null_string(STATIC_STRING("null"));
+static const StringView true_string(STATIC_STRING("true"));
+static const StringView false_string(STATIC_STRING("false"));
 bool Lexer::readKeyword(Token &token) {
-    static const StringView null_string(STATIC_STRING("null"));
-    static const StringView true_string(STATIC_STRING("true"));
-    static const StringView false_string(STATIC_STRING("false"));
-
     if(isKeyword(null_string)) {
         token.type = TokenType::NULL_T;
         token.value.size = null_string.size;
