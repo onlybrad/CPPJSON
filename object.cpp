@@ -123,67 +123,67 @@ void Object::set(const std::string &key, Node &&value) {
 }
 
 void Object::set(const std::string &key, Array &&value) {
-    Node *const node = &m_nodes[key];
-    node->destroy();
+    Node &node = m_nodes[key];
+    node.destroy();
 
-    node->m_type = Type::ARRAY;
-    node->m_value.array.m_nodes = std::move(value.m_nodes);
+    node.m_type = Type::ARRAY;
+    node.m_value.array.m_nodes = std::move(value.m_nodes);
 }
 
 void Object::set(const std::string &key, Object &&value) {
-    Node *const node = &m_nodes[key];
-    node->destroy();
+    Node &node = m_nodes[key];
+    node.destroy();
 
-    node->m_type = Type::OBJECT;
-    node->m_value.object.m_nodes = std::move(value.m_nodes);
+    node.m_type = Type::OBJECT;
+    node.m_value.object.m_nodes = std::move(value.m_nodes);
 }
 
 void Object::set(const std::string &key, const int64_t value) {
-    Node *const node = &m_nodes[key];
-    node->destroy();
+    Node &node = m_nodes[key];
+    node.destroy();
 
-    node->m_type = Type::INT64;
-    node->m_value.int64 = value;
+    node.m_type = Type::INT64;
+    node.m_value.int64 = value;
 }
 
 void Object::set(const std::string &key, const uint64_t value) {
-    Node *const node = &m_nodes[key];
-    node->destroy();
+    Node &node = m_nodes[key];
+    node.destroy();
 
-    node->m_type = Type::UINT64;
-    node->m_value.uint64 = value;
+    node.m_type = Type::UINT64;
+    node.m_value.uint64 = value;
 }
 
 void Object::set(const std::string &key, const double value) {
-    Node *const node = &m_nodes[key];
-    node->destroy();
+    Node &node = m_nodes[key];
+    node.destroy();
 
-    node->m_type = Type::FLOAT64;
-    node->m_value.float64 = value;
+    node.m_type = Type::FLOAT64;
+    node.m_value.float64 = value;
 }
 
 void Object::set(const std::string &key, const bool value) {
-    Node *const node = &m_nodes[key];
-    node->destroy();
+    Node &node = m_nodes[key];
+    node.destroy();
 
-    node->m_type = Type::BOOL;
-    node->m_value.boolean = value;
+    node.m_type = Type::BOOL;
+    node.m_value.boolean = value;
 }
 
 void Object::set(const std::string &key, std::string &&value) {
-    Node *const node = &m_nodes[key];
-    node->destroy();
+    Node &node = m_nodes[key];
+    node.destroy();
 
-    node->m_type = Type::STRING;
-    node->m_value.string = std::move(value);
+    node.m_type = Type::STRING;
+    node.m_value.string = std::move(value);
 }
 
 void Object::set(const std::string &key, std::nullptr_t null) {
-    Node *const node = &m_nodes[key];
-    node->destroy();
+    Node &node = m_nodes[key];
+    node.destroy();
 
-    node->m_type = Type::NULL_T;
-    node->m_value.null = null;
+    node.m_type = Type::NULL_T;
+    node.m_value.null = null;
 }
 
 void Object::set(std::string &&key, Node &&value) {
@@ -194,67 +194,67 @@ void Object::set(std::string &&key, Node &&value) {
 }
 
 void Object::set(std::string &&key, Array &&value) {
-    Node *const node = &m_nodes[std::move(key)];
-    node->destroy();
+    Node &node = m_nodes[std::move(key)];
+    node.destroy();
 
-    node->m_type = Type::ARRAY;
-    node->m_value.array.m_nodes = std::move(value.m_nodes);
+    node.m_type = Type::ARRAY;
+    node.m_value.array.m_nodes = std::move(value.m_nodes);
 }
 
 void Object::set(std::string &&key, Object &&value) {
-    Node *const node = &m_nodes[std::move(key)];
-    node->destroy();
+    Node &node = m_nodes[std::move(key)];
+    node.destroy();
 
-    node->m_type = Type::OBJECT;
-    node->m_value.object.m_nodes = std::move(value.m_nodes);
+    node.m_type = Type::OBJECT;
+    node.m_value.object.m_nodes = std::move(value.m_nodes);
 }
 
 void Object::set(std::string &&key, const int64_t value) {
-    Node *const node = &m_nodes[std::move(key)];
-    node->destroy();
+    Node &node = m_nodes[std::move(key)];
+    node.destroy();
 
-    node->m_type = Type::INT64;
-    node->m_value.int64 = value;
+    node.m_type = Type::INT64;
+    node.m_value.int64 = value;
 }
 
 void Object::set(std::string &&key, const uint64_t value) {
-    Node *const node = &m_nodes[std::move(key)];
-    node->destroy();
+    Node &node = m_nodes[std::move(key)];
+    node.destroy();
 
-    node->m_type = Type::UINT64;
-    node->m_value.uint64 = value;
+    node.m_type = Type::UINT64;
+    node.m_value.uint64 = value;
 }
 
 void Object::set(std::string &&key, const double value) {
-    Node *const node = &m_nodes[std::move(key)];
-    node->destroy();
+    Node &node = m_nodes[std::move(key)];
+    node.destroy();
 
-    node->m_type = Type::FLOAT64;
-    node->m_value.float64 = value;
+    node.m_type = Type::FLOAT64;
+    node.m_value.float64 = value;
 }
 
 void Object::set(std::string &&key, const bool value) {
-    Node *const node = &m_nodes[std::move(key)];
-    node->destroy();
+    Node &node = m_nodes[std::move(key)];
+    node.destroy();
 
-    node->m_type = Type::BOOL;
-    node->m_value.boolean = value;
+    node.m_type = Type::BOOL;
+    node.m_value.boolean = value;
 }
 
 void Object::set(std::string &&key, std::string &&value) {
-    Node *const node = &m_nodes[std::move(key)];
-    node->destroy();
+    Node &node = m_nodes[std::move(key)];
+    node.destroy();
 
-    node->m_type = Type::STRING;
-    node->m_value.string = std::move(value);
+    node.m_type = Type::STRING;
+    node.m_value.string = std::move(value);
 }
 
 void Object::set(std::string &&key, std::nullptr_t null) {
-    Node *const node = &m_nodes[std::move(key)];
-    node->destroy();
+    Node &node = m_nodes[std::move(key)];
+    node.destroy();
 
-    node->m_type = Type::NULL_T;
-    node->m_value.null = null;
+    node.m_type = Type::NULL_T;
+    node.m_value.null = null;
 }
 
 void Object::destroy() {
