@@ -69,6 +69,7 @@ class Array {
 
 public:
     Array &operator=(Array &&other);
+    Node *operator[](const unsigned int index);
 
     Node *get(const unsigned int index, bool &success);
     Array *getArray(const unsigned int index, bool &success);

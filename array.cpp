@@ -2,6 +2,13 @@
 
 namespace CJSON {
 
+Node *Array::operator[](const unsigned int index) {
+    if(index >= m_nodes.size()) {
+        return nullptr;
+    }
+    return &m_nodes[index];
+}
+
 Array &Array::operator=(Array &&other) {
     if(&other != this) {
         m_nodes = std::move(other.m_nodes);
