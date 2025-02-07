@@ -179,6 +179,9 @@ void Array::set(const unsigned int index, std::nullptr_t null) {
 }
 
 void Array::push_back(Array &&value) {
+    if(m_nodes.size() == (size_t)UINT_MAX) {
+        return;
+    }
     m_nodes.emplace_back();
     Node &node = m_nodes.back();
     node.m_type = Type::ARRAY;
@@ -186,6 +189,9 @@ void Array::push_back(Array &&value) {
 }
 
 void Array::push_back(Object &&value) {
+    if(m_nodes.size() == (size_t)UINT_MAX) {
+        return;
+    }
     m_nodes.emplace_back();
     Node &node = m_nodes.back();
     node.m_type = Type::OBJECT;
@@ -193,6 +199,9 @@ void Array::push_back(Object &&value) {
 }
 
 void Array::push_back(const int64_t value) {
+    if(m_nodes.size() == (size_t)UINT_MAX) {
+        return;
+    }
     m_nodes.emplace_back();
     Node &node = m_nodes.back();
     node.m_type = Type::INT64;
@@ -200,6 +209,9 @@ void Array::push_back(const int64_t value) {
 }
 
 void Array::push_back(const uint64_t value) {
+    if(m_nodes.size() == (size_t)UINT_MAX) {
+        return;
+    }
     m_nodes.emplace_back();
     Node &node = m_nodes.back();
     node.m_type = Type::UINT64;
@@ -207,6 +219,9 @@ void Array::push_back(const uint64_t value) {
 }
 
 void Array::push_back(const double value) {
+    if(m_nodes.size() == (size_t)UINT_MAX) {
+        return;
+    }
     m_nodes.emplace_back();
     Node &node = m_nodes.back();
     node.m_type = Type::FLOAT64;
@@ -214,6 +229,9 @@ void Array::push_back(const double value) {
 }
 
 void Array::push_back(const bool value) {
+    if(m_nodes.size() == (size_t)UINT_MAX) {
+        return;
+    }
     m_nodes.emplace_back();
     Node &node = m_nodes.back();
     node.m_type = Type::BOOL;
@@ -221,6 +239,9 @@ void Array::push_back(const bool value) {
 }
 
 void Array::push_back(std::string &&value) {
+    if(m_nodes.size() == (size_t)UINT_MAX) {
+        return;
+    }
     m_nodes.emplace_back();
     Node &node = m_nodes.back();
     node.m_type = Type::STRING;
@@ -228,6 +249,9 @@ void Array::push_back(std::string &&value) {
 }
 
 void Array::push_back(std::nullptr_t null) {
+    if(m_nodes.size() == (size_t)UINT_MAX) {
+        return;
+    }
     m_nodes.emplace_back();
     Node &node = m_nodes.back();
     node.m_type = Type::NULL_T;
