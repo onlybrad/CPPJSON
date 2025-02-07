@@ -218,4 +218,6 @@ public:
     ~JSON() = default;
 };
 
+std::unique_ptr<JSON> parse(const std::string &data);
+
 }

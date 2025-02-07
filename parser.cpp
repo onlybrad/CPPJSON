@@ -555,4 +555,8 @@ std::unique_ptr<JSON> JSON::parse(const std::string &data) {
     return root;
 }
 
+std::unique_ptr<JSON> parse(const std::string &data) {
+    return JSON::parse(data);
+}
+
 }

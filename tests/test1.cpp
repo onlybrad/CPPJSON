@@ -4,56 +4,56 @@
 
 static void test_empty_object() {
     const std::string emptyObject = "{}";
-    auto root = CJSON::JSON::parse(emptyObject);
+    auto root = CJSON::parse(emptyObject);
     assert(root->type() == CJSON::Type::OBJECT);
 }
 
 static void test_empty_array() {
     const std::string emptyArray = "[]";
-    auto root = CJSON::JSON::parse(emptyArray);
+    auto root = CJSON::parse(emptyArray);
     assert(root->type() == CJSON::Type::ARRAY);
 }
 
 static void test_primitive_values() {
     const std::string string = "\"\"";
-    auto root = CJSON::JSON::parse(string);
+    auto root = CJSON::parse(string);
     assert(root->type() == CJSON::Type::STRING);
     assert(root->value().string == "");
     root->destroy();
 
     const std::string int64 = "-125";
-    root = CJSON::JSON::parse(int64);
+    root = CJSON::parse(int64);
     assert(root->type() == CJSON::Type::INT64);
     assert(root->value().int64 == -125);
     root->destroy();
 
     const std::string uint64 = "2500";
-    root = CJSON::JSON::parse(uint64);
+    root = CJSON::parse(uint64);
     assert(root->type() == CJSON::Type::UINT64);
     assert(root->value().uint64 == 2500);
     root->destroy();
 
     const std::string trueValue = "true";
-    root = CJSON::JSON::parse(trueValue);
+    root = CJSON::parse(trueValue);
     assert(root->type() == CJSON::Type::BOOL);
     assert(root->value().boolean);
     root->destroy();
 
     const std::string falseValue = "false";
-    root = CJSON::JSON::parse(falseValue);
+    root = CJSON::parse(falseValue);
     assert(root->type() == CJSON::Type::BOOL);
     assert(!root->value().boolean);
     root->destroy(); 
 
     const std::string nullValue = "null";
-    root = CJSON::JSON::parse(nullValue);
+    root = CJSON::parse(nullValue);
     assert(root->type() == CJSON::Type::NULL_T);
     assert(root->value().null == NULL);
 }
 
 static void test_key_value() {
     const std::string keyValue = "{\"key\": \"value\"}";
-    auto root = CJSON::JSON::parse(keyValue);
+    auto root = CJSON::parse(keyValue);
     assert(root->type() == CJSON::Type::OBJECT);
 
     CJSON::Node *const node = (*root)["key"].get();
@@ -72,7 +72,7 @@ static void test_nested_objects() {
         "\"key2\": \"value\""
     "}";
 
-    auto root = CJSON::JSON::parse(nestedObjects);
+    auto root = CJSON::parse(nestedObjects);
     assert(root->type() == CJSON::Type::OBJECT);
     
     CJSON::Node *innerObject = (*root)["key1"].get();
@@ -101,7 +101,7 @@ static void test_object_array() {
         "{\"key2\": \"value2\"}"
     "]";
 
-    auto root = CJSON::JSON::parse(objectArray);
+    auto root = CJSON::parse(objectArray);
     assert(root->type() == CJSON::Type::ARRAY);
     assert(root->value().array.size() == 2U);
 
@@ -126,7 +126,7 @@ static void test_object_array() {
 static void test_escaped_characters() {
     const std::string escapedCharacters = "{\"key\": \"Line 1\\nLine 2\\\\\"}";
 
-    auto root = CJSON::JSON::parse(escapedCharacters);
+    auto root = CJSON::parse(escapedCharacters);
     assert(root->type() == CJSON::Type::OBJECT);
     bool success;
 
@@ -138,7 +138,7 @@ static void test_escaped_characters() {
 static void test_escaped_unicode() {
     const std::string escapedUnicode = "{\"key\": \"Unicode test: \\u00A9\\u03A9\\uD840\\uDC00\"}";
 
-    auto root = CJSON::JSON::parse(escapedUnicode);
+    auto root = CJSON::parse(escapedUnicode);
     assert(root->type() == CJSON::Type::OBJECT);
 
     bool success;
@@ -160,7 +160,7 @@ static void test_escaped_unicode() {
 static void test_bools() {
     const std::string bools = "{\"isTrue\": true, \"isFalse\": false}";
 
-    auto root = CJSON::JSON::parse(bools);
+    auto root = CJSON::parse(bools);
     assert(root->type() == CJSON::Type::OBJECT);
 
     CJSON::Node *node = (*root)["isTrue"].get();
@@ -177,7 +177,7 @@ static void test_bools() {
 static void test_exponent() {
     const std::string exponent = "{\"largeNumber\": 1e15, \"negativeLarge\": -1e15}";
 
-    auto root = CJSON::JSON::parse(exponent);
+    auto root = CJSON::parse(exponent);
     assert(root->type() == CJSON::Type::OBJECT);
 
     bool success;
@@ -193,7 +193,7 @@ static void test_exponent() {
 static void test_null() {
     const std::string nullValue = "{\"key\": null}";
 
-    auto root = CJSON::JSON::parse(nullValue);
+    auto root = CJSON::parse(nullValue);
     assert(root->type() == CJSON::Type::OBJECT);
 
     CJSON::Node *const node = (*root)["key"].get();
@@ -210,7 +210,7 @@ static void test_null() {
 static void test_missing_value() {
     const std::string missingKey = "{\"key1\": \"value1\", \"key2\": }";
 
-    auto root = CJSON::JSON::parse(missingKey);
+    auto root = CJSON::parse(missingKey);
     assert(root->type() == CJSON::Type::ERROR);
     assert(root->value().error == CJSON::Error::OBJECT_FAILED_TO_PARSE);
 }
@@ -221,7 +221,7 @@ static void test_comments() {
         "\"key\": \"value\""
     "}";
 
-    auto root = CJSON::JSON::parse(comments);
+    auto root = CJSON::parse(comments);
     assert(root->type() == CJSON::Type::ERROR);
     assert(root->value().error == CJSON::Error::TOKEN_ERROR);
 }
@@ -229,7 +229,7 @@ static void test_comments() {
 static void test_deep_nesting() {
     const std::string deepNesting = "{\"key1\": {\"key2\": {\"key3\": {\"key4\": {\"key5\": \"value\"}}}}}";
 
-    auto root = CJSON::JSON::parse(deepNesting);
+    auto root = CJSON::parse(deepNesting);
     assert(root->type() == CJSON::Type::OBJECT);
 
     bool success;
@@ -241,7 +241,7 @@ static void test_deep_nesting() {
 static void test_no_quotes_key() {
     const std::string noQuotesKey = "{ key: 1 }";
 
-    auto root = CJSON::JSON::parse(noQuotesKey);
+    auto root = CJSON::parse(noQuotesKey);
     assert(root->type() == CJSON::Type::ERROR);
     assert(root->value().error == CJSON::Error::TOKEN_ERROR);
 }
@@ -249,7 +249,7 @@ static void test_no_quotes_key() {
 static void test_nested_arrays() {
     const std::string nestedArrays = "[[1, 2, [3, 4]], [5, 6]]";
 
-    auto root = CJSON::JSON::parse(nestedArrays);
+    auto root = CJSON::parse(nestedArrays);
     assert(root->type() == CJSON::Type::ARRAY);
     assert(root->value().array.size() == 2U);
 
@@ -306,7 +306,7 @@ static void test_nested_arrays() {
 static void test_duplicate_keys() {
     const std::string duplicatedKeys = "{\"key\": \"value1\", \"key\": \"value2\"}";
 
-    auto root = CJSON::JSON::parse(duplicatedKeys);
+    auto root = CJSON::parse(duplicatedKeys);
     assert(root->type() == CJSON::Type::OBJECT);
 
     bool success;
