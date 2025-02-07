@@ -427,6 +427,48 @@ std::string &Node::makeString() {
     return m_value.string;
 }
 
+void Node::set(const std::string &str) {
+    destroy();
+    m_type = Type::STRING;
+    new (&m_value.string) std::string(str);
+}
+
+void Node::set(std::string &&str) {
+    destroy();
+    m_type = Type::STRING;
+    new (&m_value.string) std::string(std::move(str));
+}
+
+void Node::set(const int64_t value) {
+    destroy();
+    m_type = Type::INT64;
+    m_value.int64 = value;
+}
+
+void Node::set(const uint64_t value) {
+    destroy();
+    m_type = Type::UINT64;
+    m_value.uint64 = value;
+}
+
+void Node::set(const double value) {
+    destroy();
+    m_type = Type::FLOAT64;
+    m_value.float64 = value;
+}
+
+void Node::set(const bool value) {
+    destroy();
+    m_type = Type::BOOL;
+    m_value.boolean = value;
+}
+
+void Node::set(std::nullptr_t null) {
+    destroy();
+    m_type = Type::NULL_T;
+    m_value.null = null;
+}
+
 void Node::destroy() {
     switch(m_type) {
     case Type::OBJECT:

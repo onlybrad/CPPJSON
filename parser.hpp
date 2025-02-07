@@ -191,15 +191,20 @@ public:
     ~Node();
 
     Node &operator=(Node &&other);
+    Query operator[](const unsigned int index);
+    Query operator[](const std::string &key);
 
     Array &makeArray();
     Object &makeObject();
     std::string &makeString();
+    void set(const std::string &str);
+    void set(std::string &&str);
+    void set(const int64_t value);
+    void set(const uint64_t value);
+    void set(const double value);
+    void set(const bool value);
+    void set(std::nullptr_t null);
     void destroy();
-
-    Query operator[](const unsigned int index);
-    Query operator[](const std::string &key);
-
     Type type() const;
     Data &value();
 };

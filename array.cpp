@@ -89,17 +89,27 @@ nullptr_t Array::getNull(const unsigned int index, bool &success) {
 }
 
 void Array::set(const unsigned int index, Node &&value) {
-    if(index >= m_nodes.size() || (value.m_type == Type::ARRAY && &value.m_value.array.m_nodes == &m_nodes)) {
+    if(value.m_type == Type::ARRAY && &value.m_value.array == this) {
         return;
     }
+
+    if(index >= m_nodes.size()) {
+        m_nodes.resize(index + 1U);
+    }
+
     m_nodes[index].destroy();
     m_nodes[index] = std::move(value);
 }
 
 void Array::set(const unsigned int index, Array &&value) {
-    if(index >= m_nodes.size() || &value == this) {
+    if(&value == this) {
         return;
     }
+
+    if(index >= m_nodes.size()) {
+        m_nodes.resize(index + 1U);
+    }
+
     m_nodes[index].destroy();
     m_nodes[index].m_type = Type::ARRAY;
     m_nodes[index].m_value.array = std::move(value);
@@ -107,7 +117,7 @@ void Array::set(const unsigned int index, Array &&value) {
 
 void Array::set(const unsigned int index, Object &&value) {
     if(index >= m_nodes.size()) {
-        return;
+        m_nodes.resize(index + 1U);
     }
     m_nodes[index].destroy();
     m_nodes[index].m_type = Type::OBJECT;
@@ -116,7 +126,7 @@ void Array::set(const unsigned int index, Object &&value) {
 
 void Array::set(const unsigned int index, const int64_t value) {
     if(index >= m_nodes.size()) {
-        return;
+        m_nodes.resize(index + 1U);
     }
     m_nodes[index].destroy();
     m_nodes[index].m_type = Type::INT64;
@@ -125,7 +135,7 @@ void Array::set(const unsigned int index, const int64_t value) {
 
 void Array::set(const unsigned int index, const uint64_t value) {
     if(index >= m_nodes.size()) {
-        return;
+        m_nodes.resize(index + 1U);
     }
     m_nodes[index].destroy();
     m_nodes[index].m_type = Type::UINT64;
@@ -134,7 +144,7 @@ void Array::set(const unsigned int index, const uint64_t value) {
 
 void Array::set(const unsigned int index, const double value) {
     if(index >= m_nodes.size()) {
-        return;
+        m_nodes.resize(index + 1U);
     }
     m_nodes[index].destroy();
     m_nodes[index].m_type = Type::FLOAT64;
@@ -143,7 +153,7 @@ void Array::set(const unsigned int index, const double value) {
 
 void Array::set(const unsigned int index, const bool value) {
     if(index >= m_nodes.size()) {
-        return;
+        m_nodes.resize(index + 1U);
     }
     m_nodes[index].destroy();
     m_nodes[index].m_type = Type::BOOL;
@@ -152,7 +162,7 @@ void Array::set(const unsigned int index, const bool value) {
 
 void Array::set(const unsigned int index, std::string &&value) {
     if(index >= m_nodes.size()) {
-        return;
+        m_nodes.resize(index + 1U);
     }
     m_nodes[index].destroy();
     m_nodes[index].m_type = Type::STRING;
@@ -161,7 +171,7 @@ void Array::set(const unsigned int index, std::string &&value) {
 
 void Array::set(const unsigned int index, std::nullptr_t null) {
     if(index >= m_nodes.size()) {
-        return;
+        m_nodes.resize(index + 1U);
     }
     m_nodes[index].destroy();
     m_nodes[index].m_type = Type::NULL_T;

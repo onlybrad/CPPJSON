@@ -315,6 +315,103 @@ static void test_duplicate_keys() {
     assert(*value == "value2");
 }
 
+static void test_create_string() {
+    std::string value = "test";
+    CJSON::Node root;
+    root.set(std::move(value));
+    assert(root.type() == CJSON::Type::STRING);
+    assert(root.value().string == "test");
+}
+
+static void test_create_primitives() {
+    const int64_t value1 = -25000000000LL;
+    CJSON::Node root;
+    root.set(value1);
+    assert(root.type() == CJSON::Type::INT64);
+    assert(root.value().int64 == value1);
+
+    const uint64_t value2 = 25000000000ULL;
+    root.set(value2);
+    assert(root.type() == CJSON::Type::UINT64);
+    assert(root.value().uint64 == value2);
+
+    const double value3 = 25000000000.50;
+    root.set(value3);
+    assert(root.type() == CJSON::Type::FLOAT64);
+    assert(root.value().float64 == value3);
+
+    const bool value4 = true;
+    root.set(value4);
+    assert(root.type() == CJSON::Type::BOOL);
+    assert(root.value().boolean == value4);
+
+    root.set(nullptr);
+    assert(root.type() == CJSON::Type::NULL_T);
+    assert(root.value().null == nullptr);
+}
+
+static void test_create_array() {
+    CJSON::Node root;
+    CJSON::Array &array1 = root.makeArray();
+    assert(root.type() == CJSON::Type::ARRAY);
+    assert(&root.value().array == &array1);
+
+    const uint64_t value1 = 5ULL;
+    const bool value2 = true;
+    const int64_t value3 = -25000000000LL;
+
+    CJSON::Array array2;
+    array2.set(0, value1);
+
+    bool success;
+    assert(array2.get(0, success)->type() == CJSON::Type::UINT64);
+    assert(success);
+    assert(array2.get(0, success)->value().uint64 == value1);
+
+    array1.set(0, std::move(array2));
+    array1.set(1, value2);
+    array1.set(2, value3);
+
+    assert(array1.get(0, success)->type() == CJSON::Type::ARRAY);
+    assert(success);
+    assert(array1.get(1, success)->type() == CJSON::Type::BOOL);
+    assert(success);
+    assert(array1.get(1, success)->value().boolean == value2);
+    assert(array1.get(2, success)->type() == CJSON::Type::INT64);   
+    assert(success);
+    assert(array1.get(2, success)->value().int64 == value3);
+}
+
+static void test_create_object() {
+    CJSON::Node root;
+    CJSON::Object &object1 = root.makeObject();
+    assert(root.type() == CJSON::Type::OBJECT);
+    assert(&root.value().object == &object1);
+
+    const uint64_t value1 = 5ULL;
+    const bool value2 = true;
+    const int64_t value3 = -25000000000LL;
+
+    CJSON::Object object2;
+    object2.set("key1", value1);
+    assert(object2["key1"] != nullptr);
+    assert(object2["key1"]->type() == CJSON::Type::UINT64);
+    assert(object2["key1"]->value().uint64 == value1);
+    
+    object1.set("key1", std::move(object2));
+    object1.set("key2", value2);
+    object1.set("key3", value3);
+
+    assert(object1["key1"] != nullptr);
+    assert(object1["key1"]->type() == CJSON::Type::OBJECT);
+    assert(object1["key2"] != nullptr);
+    assert(object1["key2"]->type() == CJSON::Type::BOOL);
+    assert(object1["key2"]->value().boolean == value2);
+    assert(object1["key3"] != nullptr);
+    assert(object1["key3"]->type() == CJSON::Type::INT64);
+    assert(object1["key3"]->value().int64 == value3);
+}
+
 int main() {
     test_empty_object();
     test_empty_array();
@@ -333,6 +430,10 @@ int main() {
     test_no_quotes_key();
     test_nested_arrays();
     test_duplicate_keys();
+    test_create_string();
+    test_create_primitives();
+    test_create_array();
+    test_create_object();
 
     return 0;
 }
