@@ -97,7 +97,7 @@ double parseFloat64(const std::string& str, bool &success) {
     errno = 0;
     
     const double ret = std::strtod(str.c_str(), &end_ptr);
-    if(end_ptr == str || *end_ptr != '\0' || errno == ERANGE) {
+    if(end_ptr == str.c_str() || *end_ptr != '\0' || errno == ERANGE) {
         success = false;
         return 0.0;
     }
@@ -111,7 +111,7 @@ long double parseLongDouble(const std::string& str, bool &success) {
     errno = 0;
     
     const long double ret = std::strtold(str.c_str(), &end_ptr);
-    if(end_ptr == str || *end_ptr != '\0' || errno == ERANGE) {
+    if(end_ptr == str.c_str() || *end_ptr != '\0' || errno == ERANGE) {
         success = false;
         return 0.0L;
     }
@@ -125,7 +125,7 @@ uint64_t parseUint64(const std::string& str, bool &success) {
     errno = 0;
 
     const uint64_t ret = std::strtoull(str.c_str(), &end_ptr, 10);
-    if(end_ptr == str || *end_ptr != '\0' || errno == ERANGE) {
+    if(end_ptr == str.c_str() || *end_ptr != '\0' || errno == ERANGE) {
         success = false;
         return (uint64_t)0;
     }
@@ -139,7 +139,7 @@ int64_t parseInt64(const std::string& str, bool &success) {
     errno = 0;
     
     const int64_t ret = strtoll(str.c_str(), &end_ptr, 10);
-    if(end_ptr == str || *end_ptr != '\0' || errno == ERANGE) {
+    if(end_ptr == str.c_str() || *end_ptr != '\0' || errno == ERANGE) {
         success = false;
         return (int64_t)0;
     }
