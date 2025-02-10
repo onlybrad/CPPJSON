@@ -56,7 +56,7 @@ static void test_key_value() {
     auto root = CJSON::parse(keyValue);
     assert(root->type() == CJSON::Type::OBJECT);
 
-    CJSON::Node *const node = (*root)["key"].get();
+    CJSON::JSON *const node = (*root)["key"].get();
     assert(node != nullptr);
     assert(node->value().string == "value");
 
@@ -75,7 +75,7 @@ static void test_nested_objects() {
     auto root = CJSON::parse(nestedObjects);
     assert(root->type() == CJSON::Type::OBJECT);
     
-    CJSON::Node *innerObject = (*root)["key1"].get();
+    CJSON::JSON *innerObject = (*root)["key1"].get();
     assert(innerObject != nullptr);
     assert(innerObject->type() == CJSON::Type::OBJECT);
 
@@ -84,7 +84,7 @@ static void test_nested_objects() {
     assert(success);
     assert(*value == "innerValue");
 
-    CJSON::Node *innerValue = (*root)["key1"]["innerKey"].get();
+    CJSON::JSON *innerValue = (*root)["key1"]["innerKey"].get();
     assert(innerValue != nullptr);
     assert(innerValue->type() == CJSON::Type::STRING);
     assert(innerValue->value().string == "innerValue");
@@ -105,7 +105,7 @@ static void test_object_array() {
     assert(root->type() == CJSON::Type::ARRAY);
     assert(root->value().array.size() == 2U);
 
-    CJSON::Node *object = (*root)[0].get();
+    CJSON::JSON *object = (*root)[0].get();
     assert(object != nullptr);
     assert(object->type() == CJSON::Type::OBJECT);
 
@@ -163,7 +163,7 @@ static void test_bools() {
     auto root = CJSON::parse(bools);
     assert(root->type() == CJSON::Type::OBJECT);
 
-    CJSON::Node *node = (*root)["isTrue"].get();
+    CJSON::JSON *node = (*root)["isTrue"].get();
     assert(node != nullptr);
     assert(node->type() == CJSON::Type::BOOL);
     assert(node->value().boolean);
@@ -196,7 +196,7 @@ static void test_null() {
     auto root = CJSON::parse(nullValue);
     assert(root->type() == CJSON::Type::OBJECT);
 
-    CJSON::Node *const node = (*root)["key"].get();
+    CJSON::JSON *const node = (*root)["key"].get();
     assert(node != nullptr);
     assert(node->type() == CJSON::Type::NULL_T);
     assert(node->value().null == nullptr);
@@ -254,13 +254,13 @@ static void test_nested_arrays() {
     assert(root->value().array.size() == 2U);
 
     //[1, 2, [3, 4]]
-    CJSON::Node *level1_node = (*root)[0].get();
+    CJSON::JSON *level1_node = (*root)[0].get();
     assert(level1_node != nullptr);
     assert(level1_node->type() == CJSON::Type::ARRAY);
     assert(level1_node->value().array.size() == 3U);
 
     //1
-    CJSON::Node *level2_node = (*level1_node)[0].get();
+    CJSON::JSON *level2_node = (*level1_node)[0].get();
     assert(level2_node != nullptr);
     assert(level2_node->type() == CJSON::Type::UINT64);
     assert(level2_node->value().uint64 == 1U);
@@ -275,7 +275,7 @@ static void test_nested_arrays() {
     assert(level2_node->type() == CJSON::Type::ARRAY);
     assert(level2_node->value().array.size() == 2U);
     //3
-    CJSON::Node *level3_node = (*level2_node)[0].get();
+    CJSON::JSON *level3_node = (*level2_node)[0].get();
     assert(level3_node != nullptr);
     assert(level3_node->type() == CJSON::Type::UINT64);
     assert(level3_node->value().uint64 == 3U);
@@ -317,7 +317,7 @@ static void test_duplicate_keys() {
 
 static void test_create_string() {
     std::string value = "test";
-    CJSON::Node root;
+    CJSON::JSON root;
     root.set(std::move(value));
     assert(root.type() == CJSON::Type::STRING);
     assert(root.value().string == "test");
@@ -325,7 +325,7 @@ static void test_create_string() {
 
 static void test_create_primitives() {
     const int64_t value1 = -25000000000LL;
-    CJSON::Node root;
+    CJSON::JSON root;
     root.set(value1);
     assert(root.type() == CJSON::Type::INT64);
     assert(root.value().int64 == value1);
@@ -351,7 +351,7 @@ static void test_create_primitives() {
 }
 
 static void test_create_array() {
-    CJSON::Node root;
+    CJSON::JSON root;
     CJSON::Array &array1 = root.makeArray();
     assert(root.type() == CJSON::Type::ARRAY);
     assert(&root.value().array == &array1);
@@ -383,7 +383,7 @@ static void test_create_array() {
 }
 
 static void test_create_object() {
-    CJSON::Node root;
+    CJSON::JSON root;
     CJSON::Object &object1 = root.makeObject();
     assert(root.type() == CJSON::Type::OBJECT);
     assert(&root.value().object == &object1);

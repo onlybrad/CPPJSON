@@ -2,7 +2,7 @@
 
 namespace CJSON {
 
-Query::Query(Node *const node) : m_node(node) {}
+Query::Query(JSON *const node) : m_node(node) {}
 
 Query Query::operator[](const unsigned int index) {
     if(m_node == nullptr || m_node->type() != Type::ARRAY) {
@@ -32,7 +32,7 @@ Query Query::operator[](const std::string &key) {
     return *this;
 }
 
-Node *Query::get() {
+JSON *Query::get() {
     return m_node;
 }
 

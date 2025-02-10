@@ -2,7 +2,7 @@
 
 namespace CJSON {
 
-Node *Array::operator[](const unsigned int index) {
+JSON *Array::operator[](const unsigned int index) {
     if(index >= m_nodes.size()) {
         return nullptr;
     }
@@ -18,7 +18,7 @@ Array &Array::operator=(Array &&other) {
     return *this;
 }  
 
-Node *Array::get(const unsigned int index, bool &success) {
+JSON *Array::get(const unsigned int index, bool &success) {
     if(index >= m_nodes.size()) {
         success = false;
         return nullptr;
@@ -95,7 +95,7 @@ nullptr_t Array::getNull(const unsigned int index, bool &success) {
     return nullptr;
 }
 
-void Array::set(const unsigned int index, Node &&value) {
+void Array::set(const unsigned int index, JSON &&value) {
     if(value.m_type == Type::ARRAY && &value.m_value.array == this) {
         return;
     }
@@ -190,7 +190,7 @@ void Array::push_back(Array &&value) {
         return;
     }
     m_nodes.emplace_back();
-    Node &node = m_nodes.back();
+    JSON &node = m_nodes.back();
     node.m_type = Type::ARRAY;
     node.m_value.array = std::move(value);
 }
@@ -200,7 +200,7 @@ void Array::push_back(Object &&value) {
         return;
     }
     m_nodes.emplace_back();
-    Node &node = m_nodes.back();
+    JSON &node = m_nodes.back();
     node.m_type = Type::OBJECT;
     node.m_value.object = std::move(value);
 }
@@ -210,7 +210,7 @@ void Array::push_back(const int64_t value) {
         return;
     }
     m_nodes.emplace_back();
-    Node &node = m_nodes.back();
+    JSON &node = m_nodes.back();
     node.m_type = Type::INT64;
     node.m_value.int64 = value;
 }
@@ -220,7 +220,7 @@ void Array::push_back(const uint64_t value) {
         return;
     }
     m_nodes.emplace_back();
-    Node &node = m_nodes.back();
+    JSON &node = m_nodes.back();
     node.m_type = Type::UINT64;
     node.m_value.uint64 = value;
 }
@@ -230,7 +230,7 @@ void Array::push_back(const double value) {
         return;
     }
     m_nodes.emplace_back();
-    Node &node = m_nodes.back();
+    JSON &node = m_nodes.back();
     node.m_type = Type::FLOAT64;
     node.m_value.float64 = value;
 }
@@ -240,7 +240,7 @@ void Array::push_back(const bool value) {
         return;
     }
     m_nodes.emplace_back();
-    Node &node = m_nodes.back();
+    JSON &node = m_nodes.back();
     node.m_type = Type::BOOL;
     node.m_value.boolean = value;
 }
@@ -250,7 +250,7 @@ void Array::push_back(std::string &&value) {
         return;
     }
     m_nodes.emplace_back();
-    Node &node = m_nodes.back();
+    JSON &node = m_nodes.back();
     node.m_type = Type::STRING;
     node.m_value.string = std::move(value);
 }
@@ -260,7 +260,7 @@ void Array::push_back(std::nullptr_t null) {
         return;
     }
     m_nodes.emplace_back();
-    Node &node = m_nodes.back();
+    JSON &node = m_nodes.back();
     node.m_type = Type::NULL_T;
     node.m_value.null = null;
 }

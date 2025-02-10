@@ -11,7 +11,7 @@ Object &Object::operator=(Object &&other) {
     return *this;
 }
 
-Node *Object::operator[](const std::string &key) {
+JSON *Object::operator[](const std::string &key) {
     auto it = m_nodes.find(key);
 
     if(it == m_nodes.end()) {
@@ -21,8 +21,8 @@ Node *Object::operator[](const std::string &key) {
     return &it->second;
 }
 
-Node *Object::get(const std::string &key, bool &success) {
-    Node *const node = (*this)[key];
+JSON *Object::get(const std::string &key, bool &success) {
+    JSON *const node = (*this)[key];
 
     if(node == nullptr) {
         success = false;
@@ -34,7 +34,7 @@ Node *Object::get(const std::string &key, bool &success) {
 }
 
 Array *Object::getArray(const std::string &key, bool &success) {
-    Node *const node = (*this)[key];
+    JSON *const node = (*this)[key];
 
     if(node == nullptr || node->m_type != Type::ARRAY) {
         success = false;
@@ -46,7 +46,7 @@ Array *Object::getArray(const std::string &key, bool &success) {
 }
 
 Object *Object::getObject(const std::string &key, bool &success) {
-    Node *const node = (*this)[key];
+    JSON *const node = (*this)[key];
 
     if(node == nullptr || node->m_type != Type::OBJECT) {
         success = false;
@@ -58,7 +58,7 @@ Object *Object::getObject(const std::string &key, bool &success) {
 }
 
 int64_t Object::getInt64(const std::string &key, bool &success) {
-    Node *const node = (*this)[key];
+    JSON *const node = (*this)[key];
 
     if(node == nullptr || node->m_type != Type::INT64) {
         success = false;
@@ -70,7 +70,7 @@ int64_t Object::getInt64(const std::string &key, bool &success) {
 }
 
 uint64_t Object::getUint64(const std::string &key, bool &success) {
-    Node *const node = (*this)[key];
+    JSON *const node = (*this)[key];
 
     if(node == nullptr || node->m_type != Type::UINT64) {
         success = false;
@@ -82,7 +82,7 @@ uint64_t Object::getUint64(const std::string &key, bool &success) {
 }
 
 double Object::getFloat64(const std::string &key, bool &success) {
-    Node *const node = (*this)[key];
+    JSON *const node = (*this)[key];
 
     if(node == nullptr || node->m_type != Type::FLOAT64) {
         success = false;
@@ -94,7 +94,7 @@ double Object::getFloat64(const std::string &key, bool &success) {
 }
 
 bool Object::getBool(const std::string &key, bool &success) {
-    Node *const node = (*this)[key];
+    JSON *const node = (*this)[key];
 
     if(node == nullptr || node->m_type != Type::BOOL) {
         success = false;
@@ -106,7 +106,7 @@ bool Object::getBool(const std::string &key, bool &success) {
 }
 
 std::string *Object::getString(const std::string &key, bool &success) {
-    Node *const node = (*this)[key];
+    JSON *const node = (*this)[key];
 
     if(node == nullptr || node->m_type != Type::STRING) {
         success = false;
@@ -118,21 +118,21 @@ std::string *Object::getString(const std::string &key, bool &success) {
 }
 
 std::nullptr_t Object::getNull(const std::string &key, bool &success) {
-    Node *const node = (*this)[key];
+    JSON *const node = (*this)[key];
 
     success = !(node == nullptr || node->m_type != Type::NULL_T);
     return nullptr;
 }
 
-void Object::set(const std::string &key, Node &&value) {
-    Node *const node = &m_nodes[key];
+void Object::set(const std::string &key, JSON &&value) {
+    JSON *const node = &m_nodes[key];
     node->destroy();
 
     *node = std::move(value);
 }
 
 void Object::set(const std::string &key, Array &&value) {
-    Node &node = m_nodes[key];
+    JSON &node = m_nodes[key];
     node.destroy();
 
     node.m_type = Type::ARRAY;
@@ -140,7 +140,7 @@ void Object::set(const std::string &key, Array &&value) {
 }
 
 void Object::set(const std::string &key, Object &&value) {
-    Node &node = m_nodes[key];
+    JSON &node = m_nodes[key];
     node.destroy();
 
     node.m_type = Type::OBJECT;
@@ -148,7 +148,7 @@ void Object::set(const std::string &key, Object &&value) {
 }
 
 void Object::set(const std::string &key, const int64_t value) {
-    Node &node = m_nodes[key];
+    JSON &node = m_nodes[key];
     node.destroy();
 
     node.m_type = Type::INT64;
@@ -156,7 +156,7 @@ void Object::set(const std::string &key, const int64_t value) {
 }
 
 void Object::set(const std::string &key, const uint64_t value) {
-    Node &node = m_nodes[key];
+    JSON &node = m_nodes[key];
     node.destroy();
 
     node.m_type = Type::UINT64;
@@ -164,7 +164,7 @@ void Object::set(const std::string &key, const uint64_t value) {
 }
 
 void Object::set(const std::string &key, const double value) {
-    Node &node = m_nodes[key];
+    JSON &node = m_nodes[key];
     node.destroy();
 
     node.m_type = Type::FLOAT64;
@@ -172,7 +172,7 @@ void Object::set(const std::string &key, const double value) {
 }
 
 void Object::set(const std::string &key, const bool value) {
-    Node &node = m_nodes[key];
+    JSON &node = m_nodes[key];
     node.destroy();
 
     node.m_type = Type::BOOL;
@@ -180,7 +180,7 @@ void Object::set(const std::string &key, const bool value) {
 }
 
 void Object::set(const std::string &key, std::string &&value) {
-    Node &node = m_nodes[key];
+    JSON &node = m_nodes[key];
     node.destroy();
 
     node.m_type = Type::STRING;
@@ -188,22 +188,22 @@ void Object::set(const std::string &key, std::string &&value) {
 }
 
 void Object::set(const std::string &key, std::nullptr_t null) {
-    Node &node = m_nodes[key];
+    JSON &node = m_nodes[key];
     node.destroy();
 
     node.m_type = Type::NULL_T;
     node.m_value.null = null;
 }
 
-void Object::set(std::string &&key, Node &&value) {
-    Node *const node = &m_nodes[std::move(key)];
+void Object::set(std::string &&key, JSON &&value) {
+    JSON *const node = &m_nodes[std::move(key)];
     node->destroy();
 
     *node = std::move(value);
 }
 
 void Object::set(std::string &&key, Array &&value) {
-    Node &node = m_nodes[std::move(key)];
+    JSON &node = m_nodes[std::move(key)];
     node.destroy();
 
     node.m_type = Type::ARRAY;
@@ -211,7 +211,7 @@ void Object::set(std::string &&key, Array &&value) {
 }
 
 void Object::set(std::string &&key, Object &&value) {
-    Node &node = m_nodes[std::move(key)];
+    JSON &node = m_nodes[std::move(key)];
     node.destroy();
 
     node.m_type = Type::OBJECT;
@@ -219,7 +219,7 @@ void Object::set(std::string &&key, Object &&value) {
 }
 
 void Object::set(std::string &&key, const int64_t value) {
-    Node &node = m_nodes[std::move(key)];
+    JSON &node = m_nodes[std::move(key)];
     node.destroy();
 
     node.m_type = Type::INT64;
@@ -227,7 +227,7 @@ void Object::set(std::string &&key, const int64_t value) {
 }
 
 void Object::set(std::string &&key, const uint64_t value) {
-    Node &node = m_nodes[std::move(key)];
+    JSON &node = m_nodes[std::move(key)];
     node.destroy();
 
     node.m_type = Type::UINT64;
@@ -235,7 +235,7 @@ void Object::set(std::string &&key, const uint64_t value) {
 }
 
 void Object::set(std::string &&key, const double value) {
-    Node &node = m_nodes[std::move(key)];
+    JSON &node = m_nodes[std::move(key)];
     node.destroy();
 
     node.m_type = Type::FLOAT64;
@@ -243,7 +243,7 @@ void Object::set(std::string &&key, const double value) {
 }
 
 void Object::set(std::string &&key, const bool value) {
-    Node &node = m_nodes[std::move(key)];
+    JSON &node = m_nodes[std::move(key)];
     node.destroy();
 
     node.m_type = Type::BOOL;
@@ -251,7 +251,7 @@ void Object::set(std::string &&key, const bool value) {
 }
 
 void Object::set(std::string &&key, std::string &&value) {
-    Node &node = m_nodes[std::move(key)];
+    JSON &node = m_nodes[std::move(key)];
     node.destroy();
 
     node.m_type = Type::STRING;
@@ -259,7 +259,7 @@ void Object::set(std::string &&key, std::string &&value) {
 }
 
 void Object::set(std::string &&key, std::nullptr_t null) {
-    Node &node = m_nodes[std::move(key)];
+    JSON &node = m_nodes[std::move(key)];
     node.destroy();
 
     node.m_type = Type::NULL_T;

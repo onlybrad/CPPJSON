@@ -8,27 +8,25 @@ namespace CJSON {
 Data::Data() : null(nullptr) {}
 Data::~Data() {}
 
-Node::Node(Node &&other) : m_type(other.m_type) {
+JSON::JSON(JSON &&other) : m_type(other.m_type) {
     std::memcpy((unsigned char*)&m_value, (unsigned char*)&other.m_value, sizeof(Data));
     other.m_type = Type::NULL_T;
     other.m_value.null = nullptr;
 }
 
-Node::~Node() {
+JSON::~JSON() {
     destroy();
 }
 
-Type Node::type() const {
+Type JSON::type() const {
     return m_type; 
 }
 
-Data &Node::value() {
+Data &JSON::value() {
     return m_value;
 }
 
-JSON::JSON() {}
-
-std::string Node::parseUtf8String(const Token &token, bool &success) {
+std::string JSON::parseUtf8String(const Token &token, bool &success) {
     std::string string;
     string.reserve(token.value.size - 1U);
 
@@ -148,7 +146,7 @@ std::string Node::parseUtf8String(const Token &token, bool &success) {
     return string;
 }
 
-bool Node::parseString(Tokens &tokens) {
+bool JSON::parseString(Tokens &tokens) {
     const Token &token = tokens.data[tokens.index]; 
     bool success;
 
@@ -165,7 +163,7 @@ bool Node::parseString(Tokens &tokens) {
     return success;
 }
 
-bool Node::parseNumber(Tokens &tokens) {
+bool JSON::parseNumber(Tokens &tokens) {
     std::string string;
     bool success;
     const Token &token = tokens.data[tokens.index]; 
@@ -231,7 +229,7 @@ bool Node::parseNumber(Tokens &tokens) {
     return true;
 }
 
-void Node::parseBool(Tokens &tokens) {
+void JSON::parseBool(Tokens &tokens) {
     const Token &token = tokens.data[tokens.index]; 
 
     m_type = Type::BOOL;
@@ -240,14 +238,14 @@ void Node::parseBool(Tokens &tokens) {
     tokens.index++;
 }
 
-void Node::parseNull(Tokens &tokens) {
+void JSON::parseNull(Tokens &tokens) {
     m_type = Type::NULL_T;
     m_value.null = NULL;
 
     tokens.index++;
 }
 
-bool Node::parseArray(Tokens &tokens) {
+bool JSON::parseArray(Tokens &tokens) {
     tokens.index++;
 
     if(tokens.data.size() == tokens.index) {
@@ -266,7 +264,7 @@ bool Node::parseArray(Tokens &tokens) {
 
     while(tokens.index + 2U < tokens.data.size()) {
         array.m_nodes.emplace_back();
-        Node &next = array.m_nodes.back();
+        JSON &next = array.m_nodes.back();
 
         if(!next.parseTokens(tokens)) {
             const Error error = next.m_value.error;
@@ -306,7 +304,7 @@ bool Node::parseArray(Tokens &tokens) {
     return false;
 }
 
-bool Node::parseObject(Tokens &tokens) {
+bool JSON::parseObject(Tokens &tokens) {
     tokens.index++;
 
     if(tokens.data.size() == tokens.index) {
@@ -352,10 +350,10 @@ bool Node::parseObject(Tokens &tokens) {
 
         tokens.index += 2U;
 
-        Node &node = object.m_nodes[std::move(key)]; 
+        JSON &json = object.m_nodes[std::move(key)]; 
 
-        if(!node.parseTokens(tokens)) {
-            const Error error = node.m_value.error;
+        if(!json.parseTokens(tokens)) {
+            const Error error = json.m_value.error;
             object.destroy();
             m_type = Type::ERROR;
 
@@ -392,7 +390,7 @@ bool Node::parseObject(Tokens &tokens) {
     return false; 
 }
 
-Node &Node::operator=(Node &&other) {
+JSON &JSON::operator=(JSON &&other) {
     if(this != &other) {
         m_type = other.m_type;
         std::memcpy((unsigned char*)&m_value, (unsigned char*)&other.m_value, sizeof(Data));
@@ -403,7 +401,7 @@ Node &Node::operator=(Node &&other) {
     return *this;
 }
 
-Array &Node::makeArray() {
+Array &JSON::makeArray() {
     destroy();
     m_type = Type::ARRAY;
     new (&m_value.array) Array();
@@ -411,7 +409,7 @@ Array &Node::makeArray() {
     return m_value.array;
 }
 
-Object &Node::makeObject() {
+Object &JSON::makeObject() {
     destroy();
     m_type = Type::OBJECT;
     new (&m_value.object) Object();
@@ -419,7 +417,7 @@ Object &Node::makeObject() {
     return m_value.object;
 }
 
-std::string &Node::makeString() {
+std::string &JSON::makeString() {
     destroy();
     m_type = Type::STRING;
     new (&m_value.string) std::string();
@@ -427,49 +425,49 @@ std::string &Node::makeString() {
     return m_value.string;
 }
 
-void Node::set(const std::string &str) {
+void JSON::set(const std::string &str) {
     destroy();
     m_type = Type::STRING;
     new (&m_value.string) std::string(str);
 }
 
-void Node::set(std::string &&str) {
+void JSON::set(std::string &&str) {
     destroy();
     m_type = Type::STRING;
     new (&m_value.string) std::string(std::move(str));
 }
 
-void Node::set(const int64_t value) {
+void JSON::set(const int64_t value) {
     destroy();
     m_type = Type::INT64;
     m_value.int64 = value;
 }
 
-void Node::set(const uint64_t value) {
+void JSON::set(const uint64_t value) {
     destroy();
     m_type = Type::UINT64;
     m_value.uint64 = value;
 }
 
-void Node::set(const double value) {
+void JSON::set(const double value) {
     destroy();
     m_type = Type::FLOAT64;
     m_value.float64 = value;
 }
 
-void Node::set(const bool value) {
+void JSON::set(const bool value) {
     destroy();
     m_type = Type::BOOL;
     m_value.boolean = value;
 }
 
-void Node::set(std::nullptr_t null) {
+void JSON::set(std::nullptr_t null) {
     destroy();
     m_type = Type::NULL_T;
     m_value.null = null;
 }
 
-void Node::destroy() {
+void JSON::destroy() {
     switch(m_type) {
     case Type::OBJECT:
         m_value.object.destroy(); break;
@@ -484,17 +482,17 @@ void Node::destroy() {
     m_value.null = nullptr;
 }
 
-Query Node::operator[](const unsigned int index) {
+Query JSON::operator[](const unsigned int index) {
     Query query(this);
     return query[index];
 }
 
-Query Node::operator[](const std::string &key) {
+Query JSON::operator[](const std::string &key) {
     Query query(this);
     return query[key];
 }
 
-bool Node::parseTokens(Tokens &tokens) {
+bool JSON::parseTokens(Tokens &tokens) {
     const Token &token = tokens.data[tokens.index]; 
 
     switch(token.type) {
@@ -538,11 +536,12 @@ std::unique_ptr<JSON> JSON::parse(const std::string &data) {
     }
 
     std::unique_ptr<JSON> root(new JSON());
-    Lexer lexer(data);
     Token *token;
+    Tokens tokens;
+    Lexer lexer(data);
 
     do {
-        token = root->m_tokens.nextToken();
+        token = tokens.nextToken();
     } while(lexer.tokenize(*token));
 
     if(token->type == TokenType::INVALID) {
@@ -551,7 +550,7 @@ std::unique_ptr<JSON> JSON::parse(const std::string &data) {
         return root;
     }
 
-    root->parseTokens(root->m_tokens);
+    root->parseTokens(tokens);
     return root;
 }
 
