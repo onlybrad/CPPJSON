@@ -16,7 +16,7 @@ void Lexer::skipWhitespace() {
 
 bool Lexer::readString(Token &token) {
     bool escaping = false;
-    unsigned int position = m_position + 1;
+    unsigned int position = m_position + 1U;
 
     unsigned int i;
     for(i = 0U; position + i < m_data.size(); i++) {
@@ -192,7 +192,7 @@ void Lexer::readInvalidToken(Token &token) {
     }
     
     token.type = TokenType::INVALID;
-    token.value.size = i - m_position - 1;
+    token.value.size = i - m_position - 1U;
 }
 
 bool Lexer::tokenize(Token &token) {
@@ -201,7 +201,7 @@ bool Lexer::tokenize(Token &token) {
     if(m_position == m_data.size()) {
         token.type = TokenType::NULL_T;
         token.value.data = nullptr;
-        token.value.size = 0;
+        token.value.size = 0U;
         return false;
     }
 
