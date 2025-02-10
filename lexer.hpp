@@ -13,7 +13,7 @@ class Lexer {
     void skipWhitespace();
     bool readString(Token &token);
     bool readNumber(Token &token);
-    bool isKeyword(const StringView keyword);
+    bool nextTokenIsKeyword(const StringView keyword);
     bool readKeyword(Token &token);
     void readInvalidToken(Token &token);
 

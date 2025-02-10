@@ -139,7 +139,7 @@ bool Lexer::readNumber(Token &token) {
     return success;
 }
 
-bool Lexer::isKeyword(const StringView keyword) {
+bool Lexer::nextTokenIsKeyword(const StringView keyword) {
     if(m_position + keyword.size - 1U < m_data.size() 
     && std::strncmp(m_data.c_str() + m_position, keyword.data, keyword.size) == 0
     ){
@@ -159,19 +159,19 @@ static const StringView null_string(STATIC_STRING("null"));
 static const StringView true_string(STATIC_STRING("true"));
 static const StringView false_string(STATIC_STRING("false"));
 bool Lexer::readKeyword(Token &token) {
-    if(isKeyword(null_string)) {
+    if(nextTokenIsKeyword(null_string)) {
         token.type = TokenType::NULL_T;
         token.value.size = null_string.size;
         return true;
     }
     
-    if(isKeyword(true_string)) {
+    if(nextTokenIsKeyword(true_string)) {
         token.type = TokenType::BOOL;
         token.value.size = true_string.size;
         return true;
     }
     
-    if(isKeyword(false_string)) {
+    if(nextTokenIsKeyword(false_string)) {
         token.type = TokenType::BOOL;
         token.value.size = false_string.size;
         return true;
