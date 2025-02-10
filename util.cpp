@@ -1,11 +1,12 @@
 #ifdef _WIN32
-#include <windows.h>
+    #include <windows.h>
+#else
+    #include <sys/time.h>   
 #endif
 #include <cstring>
 #include <cstdlib>
 #include <cerrno>
 #include <cstdio>
-#include <sys/time.h>
 #include "util.hpp"
 
 namespace CJSON {
@@ -189,10 +190,21 @@ std::unique_ptr<char[]> file_get_contents(const std::string& path, size_t &files
 }
 
 long usec_timestamp() {
+#ifdef _WIN32
+    FILETIME ft;
+    GetSystemTimeAsFileTime(&ft);
+    unsigned long long tt = ft.dwHighDateTime;
+    tt <<= 32ULL;
+    tt |= ft.dwLowDateTime;
+    tt /= 10ULL;
+    tt -= 11644473600000000ULL;
+    return (long)tt;
+#else
     struct timeval current_time;
     gettimeofday(&current_time, nullptr);
 
     return current_time.tv_sec * 1000000L + current_time.tv_usec;
+#endif
 }
 
 }
