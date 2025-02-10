@@ -60,7 +60,7 @@ bool Lexer::readNumber(Token &token) {
     token.type = TokenType::INT;
 
     //0 as the first character is only allowed if it's followed by a dot or by an non-digit character
-    if(data[0] == '0' && size > 1 && data[1] != '.' && isDigit(data[1])) {
+    if(data[0] == '0' && size > 1U && data[1] != '.' && isDigit(data[1])) {
         success = false;
         token.type = TokenType::INVALID;
 
@@ -140,7 +140,7 @@ bool Lexer::readNumber(Token &token) {
 }
 
 bool Lexer::isKeyword(const StringView keyword) {
-    if(m_position + keyword.size - 1 < m_data.size() 
+    if(m_position + keyword.size - 1U < m_data.size() 
     && std::strncmp(m_data.c_str() + m_position, keyword.data, keyword.size) == 0
     ){
         if(m_position + keyword.size >= m_data.size()) {
