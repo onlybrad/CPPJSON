@@ -158,10 +158,10 @@ void printBytes(const void *const buffer, const size_t size) {
 
 std::unique_ptr<char[]> file_get_contents(const std::string& path, size_t &filesize) {
 #ifdef _WIN32
-    const int wide_length = MultiByteToWideChar(CP_UTF8, 0, path.c_str(), -1, NULL, 0);
+    const int wide_length = MultiByteToWideChar(CP_UTF8, 0, path.c_str(), -1, nullptr, 0);
     if(wide_length == 0) {
         filesize = 0;
-        return NULL;
+        return nullptr;
     }
 
     std::unique_ptr<wchar_t[]> wpath(new wchar_t[wide_length]);
@@ -171,9 +171,9 @@ std::unique_ptr<char[]> file_get_contents(const std::string& path, size_t &files
 #else
     FILE *const file = fopen(path, "rb");
 #endif
-    if(file == NULL) {
+    if(file == nullptr) {
         filesize = 0;
-        return NULL;
+        return nullptr;
     }
 
     fseeko(file, 0, SEEK_END);
@@ -190,7 +190,7 @@ std::unique_ptr<char[]> file_get_contents(const std::string& path, size_t &files
 
 long usec_timestamp() {
     struct timeval current_time;
-    gettimeofday(&current_time, NULL);
+    gettimeofday(&current_time, nullptr);
 
     return current_time.tv_sec * 1000000L + current_time.tv_usec;
 }
