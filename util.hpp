@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <string>
+#include <memory>
 
 #define STATIC_STRING(STR) STR, sizeof(STR) - 1
 #define VALID_2_BYTES_UTF16(CODEPOINT) (CODEPOINT < 0xD7FF || CODEPOINT >= 0xE000)
@@ -20,7 +21,7 @@ long double  parseLongDouble  (const std::string& str, bool &success);
 uint64_t     parseUint64      (const std::string& str, bool &success);
 int64_t      parseInt64       (const std::string& str, bool &success);
 void         printBytes       (const void *const buffer, const size_t size);
-char        *file_get_contents(const std::string& path, size_t &filesize);
+std::unique_ptr<char[]> file_get_contents(const std::string& path, size_t &filesize);
 long         usec_timestamp   ();
 
 }

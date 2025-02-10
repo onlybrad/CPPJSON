@@ -1,6 +1,5 @@
 #ifdef _WIN32
 #include <windows.h>
-#include <memory>
 #endif
 #include <cstring>
 #include <cstdlib>
@@ -157,7 +156,7 @@ void printBytes(const void *const buffer, const size_t size) {
     std::printf("0x%02hhx]\n", ((const unsigned char*)buffer)[size - 1]);
 }
 
-char *file_get_contents(const std::string& path, size_t &filesize) {
+std::unique_ptr<char[]> file_get_contents(const std::string& path, size_t &filesize) {
 #ifdef _WIN32
     const int wide_length = MultiByteToWideChar(CP_UTF8, 0, path.c_str(), -1, NULL, 0);
     if(wide_length == 0) {
@@ -186,7 +185,7 @@ char *file_get_contents(const std::string& path, size_t &filesize) {
     fclose(file);
 
     filesize = (size_t)length;
-    return data;
+    return std::unique_ptr<char[]>(data);
 }
 
 long usec_timestamp() {
