@@ -177,9 +177,9 @@ std::unique_ptr<char[]> file_get_contents(const std::string& path, size_t &files
         return nullptr;
     }
 
-    fseeko(file, 0, SEEK_END);
-    const off_t length = ftello(file);
-    fseeko(file, 0, SEEK_SET);
+    fseek(file, 0, SEEK_END);
+    const off_t length = ftell(file);
+    fseek(file, 0, SEEK_SET);
     //the buffer returned has 1 extra byte allocated in case a null terminated string is required
     char *data = new char[length + 1];
     fread(data, sizeof(char), (size_t)length, file);
