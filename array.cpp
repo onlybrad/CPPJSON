@@ -28,7 +28,7 @@ JSON *Array::get(const unsigned int index, bool &success) {
 }
 
 Array *Array::getArray(const unsigned int index, bool &success) {
-    if(index >= m_nodes.size() || m_nodes[index].m_type == Type::ARRAY) {
+    if(index >= m_nodes.size() || m_nodes[index].m_type != Type::ARRAY) {
         success = false;
         return nullptr;
     }
@@ -37,7 +37,7 @@ Array *Array::getArray(const unsigned int index, bool &success) {
 }
 
 Object *Array::getObject(const unsigned int index, bool &success) {
-    if(index >= m_nodes.size() || m_nodes[index].m_type == Type::OBJECT) {
+    if(index >= m_nodes.size() || m_nodes[index].m_type != Type::OBJECT) {
         success = false;
         return nullptr;
     }
@@ -46,7 +46,7 @@ Object *Array::getObject(const unsigned int index, bool &success) {
 }
 
 int64_t Array::getInt64(const unsigned int index, bool &success) {
-    if(index >= m_nodes.size() || m_nodes[index].m_type == Type::INT64) {
+    if(index >= m_nodes.size() || m_nodes[index].m_type != Type::INT64) {
         success = false;
         return 0;
     }
@@ -55,7 +55,7 @@ int64_t Array::getInt64(const unsigned int index, bool &success) {
 }
 
 uint64_t Array::getUint64(const unsigned int index, bool &success) {
-    if(index >= m_nodes.size() || m_nodes[index].m_type == Type::UINT64) {
+    if(index >= m_nodes.size() || m_nodes[index].m_type != Type::UINT64) {
         success = false;
         return 0U;
     }
@@ -64,7 +64,7 @@ uint64_t Array::getUint64(const unsigned int index, bool &success) {
 }
 
 double Array::getFloat64(const unsigned int index, bool &success) {
-    if(index >= m_nodes.size() || m_nodes[index].m_type == Type::FLOAT64) {
+    if(index >= m_nodes.size() || m_nodes[index].m_type != Type::FLOAT64) {
         success = false;
         return 0.0;
     }
@@ -73,7 +73,7 @@ double Array::getFloat64(const unsigned int index, bool &success) {
 }
 
 bool Array::getBool(const unsigned int index, bool &success) {
-    if(index >= m_nodes.size() || m_nodes[index].m_type == Type::BOOL) {
+    if(index >= m_nodes.size() || m_nodes[index].m_type != Type::BOOL) {
         success = false;
         return false;
     }
@@ -82,7 +82,7 @@ bool Array::getBool(const unsigned int index, bool &success) {
 }
 
 std::string *Array::getString(const unsigned int index, bool &success) {
-    if(index >= m_nodes.size() || m_nodes[index].m_type == Type::STRING) {
+    if(index >= m_nodes.size() || m_nodes[index].m_type != Type::STRING) {
         success = false;
         return nullptr;
     }
@@ -91,7 +91,7 @@ std::string *Array::getString(const unsigned int index, bool &success) {
 }
 
 nullptr_t Array::getNull(const unsigned int index, bool &success) {
-    success = !(index >= m_nodes.size() || m_nodes[index].m_type == Type::STRING);
+    success = !(index >= m_nodes.size() || m_nodes[index].m_type != Type::NULL_T);
     return nullptr;
 }
 
@@ -186,7 +186,7 @@ void Array::set(const unsigned int index, std::nullptr_t null) {
 }
 
 void Array::push_back(Array &&value) {
-    if(m_nodes.size() == (size_t)UINT_MAX) {
+    if(this == &value || m_nodes.size() == (size_t)UINT_MAX) {
         return;
     }
     m_nodes.emplace_back();
