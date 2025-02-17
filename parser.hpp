@@ -48,8 +48,10 @@ class Query {
 public:
     Query() = delete;
     Query(JSON *node);
+
     Query operator[](const unsigned int index);
     Query operator[](const std::string &key);
+    
     JSON *get();
     Array *getArray(bool &success);
     Object *getObject(bool &success);
@@ -104,7 +106,6 @@ public:
     void destroy();
 
     Array();
-    ~Array() = default;
     Array(Array &&other);
 };
 
@@ -151,7 +152,6 @@ public:
     void destroy();
 
     Object();
-    ~Object() = default;
     Object(Object &&other);
 };
 
@@ -168,13 +168,14 @@ union Data {
 
     Data();
     ~Data(); 
+    Data &operator=(Data &&other);
 };
 
 class JSON {
 protected:
     friend class Array;
     friend class Object;
-    Data m_value;
+    Data m_data;
     Type m_type = Type::NULL_T;
 
     static std::string parseUtf8String(const Token &token, bool &success);

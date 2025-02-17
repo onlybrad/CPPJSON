@@ -1,5 +1,7 @@
 #include "parser.hpp"
 
+#define DEFAULT_CAPACITY 1 << 3
+
 namespace CJSON {
 
 Object &Object::operator=(Object &&other) {
@@ -42,7 +44,7 @@ Array *Object::getArray(const std::string &key, bool &success) {
     }
 
     success = true;
-    return &node->m_value.array;
+    return &node->m_data.array;
 }
 
 Object *Object::getObject(const std::string &key, bool &success) {
@@ -54,7 +56,7 @@ Object *Object::getObject(const std::string &key, bool &success) {
     }
 
     success = true;
-    return &node->m_value.object;
+    return &node->m_data.object;
 }
 
 int64_t Object::getInt64(const std::string &key, bool &success) {
@@ -66,7 +68,7 @@ int64_t Object::getInt64(const std::string &key, bool &success) {
     }
 
     success = true;
-    return node->m_value.int64;
+    return node->m_data.int64;
 }
 
 uint64_t Object::getUint64(const std::string &key, bool &success) {
@@ -78,7 +80,7 @@ uint64_t Object::getUint64(const std::string &key, bool &success) {
     }
 
     success = true;
-    return node->m_value.uint64;
+    return node->m_data.uint64;
 }
 
 double Object::getFloat64(const std::string &key, bool &success) {
@@ -90,7 +92,7 @@ double Object::getFloat64(const std::string &key, bool &success) {
     }
 
     success = true;
-    return node->m_value.float64;
+    return node->m_data.float64;
 }
 
 bool Object::getBool(const std::string &key, bool &success) {
@@ -102,7 +104,7 @@ bool Object::getBool(const std::string &key, bool &success) {
     }
 
     success = true;
-    return node->m_value.boolean;
+    return node->m_data.boolean;
 }
 
 std::string *Object::getString(const std::string &key, bool &success) {
@@ -114,7 +116,7 @@ std::string *Object::getString(const std::string &key, bool &success) {
     }
 
     success = true;
-    return &node->m_value.string;
+    return &node->m_data.string;
 }
 
 std::nullptr_t Object::getNull(const std::string &key, bool &success) {
@@ -136,7 +138,7 @@ void Object::set(const std::string &key, Array &&value) {
     node.destroy();
 
     node.m_type = Type::ARRAY;
-    node.m_value.array.m_nodes = std::move(value.m_nodes);
+    node.m_data.array = std::move(value);
 }
 
 void Object::set(const std::string &key, Object &&value) {
@@ -144,7 +146,7 @@ void Object::set(const std::string &key, Object &&value) {
     node.destroy();
 
     node.m_type = Type::OBJECT;
-    node.m_value.object.m_nodes = std::move(value.m_nodes);
+    node.m_data.object = std::move(value);
 }
 
 void Object::set(const std::string &key, const int64_t value) {
@@ -152,7 +154,7 @@ void Object::set(const std::string &key, const int64_t value) {
     node.destroy();
 
     node.m_type = Type::INT64;
-    node.m_value.int64 = value;
+    node.m_data.int64 = value;
 }
 
 void Object::set(const std::string &key, const uint64_t value) {
@@ -160,7 +162,7 @@ void Object::set(const std::string &key, const uint64_t value) {
     node.destroy();
 
     node.m_type = Type::UINT64;
-    node.m_value.uint64 = value;
+    node.m_data.uint64 = value;
 }
 
 void Object::set(const std::string &key, const double value) {
@@ -168,7 +170,7 @@ void Object::set(const std::string &key, const double value) {
     node.destroy();
 
     node.m_type = Type::FLOAT64;
-    node.m_value.float64 = value;
+    node.m_data.float64 = value;
 }
 
 void Object::set(const std::string &key, const bool value) {
@@ -176,7 +178,7 @@ void Object::set(const std::string &key, const bool value) {
     node.destroy();
 
     node.m_type = Type::BOOL;
-    node.m_value.boolean = value;
+    node.m_data.boolean = value;
 }
 
 void Object::set(const std::string &key, std::string &&value) {
@@ -184,7 +186,7 @@ void Object::set(const std::string &key, std::string &&value) {
     node.destroy();
 
     node.m_type = Type::STRING;
-    node.m_value.string = std::move(value);
+    node.m_data.string = std::move(value);
 }
 
 void Object::set(const std::string &key, std::nullptr_t null) {
@@ -192,7 +194,7 @@ void Object::set(const std::string &key, std::nullptr_t null) {
     node.destroy();
 
     node.m_type = Type::NULL_T;
-    node.m_value.null = null;
+    node.m_data.null = null;
 }
 
 void Object::set(std::string &&key, JSON &&value) {
@@ -207,7 +209,7 @@ void Object::set(std::string &&key, Array &&value) {
     node.destroy();
 
     node.m_type = Type::ARRAY;
-    node.m_value.array.m_nodes = std::move(value.m_nodes);
+    node.m_data.array = std::move(value);
 }
 
 void Object::set(std::string &&key, Object &&value) {
@@ -215,7 +217,7 @@ void Object::set(std::string &&key, Object &&value) {
     node.destroy();
 
     node.m_type = Type::OBJECT;
-    node.m_value.object.m_nodes = std::move(value.m_nodes);
+    node.m_data.object = std::move(value);
 }
 
 void Object::set(std::string &&key, const int64_t value) {
@@ -223,7 +225,7 @@ void Object::set(std::string &&key, const int64_t value) {
     node.destroy();
 
     node.m_type = Type::INT64;
-    node.m_value.int64 = value;
+    node.m_data.int64 = value;
 }
 
 void Object::set(std::string &&key, const uint64_t value) {
@@ -231,7 +233,7 @@ void Object::set(std::string &&key, const uint64_t value) {
     node.destroy();
 
     node.m_type = Type::UINT64;
-    node.m_value.uint64 = value;
+    node.m_data.uint64 = value;
 }
 
 void Object::set(std::string &&key, const double value) {
@@ -239,7 +241,7 @@ void Object::set(std::string &&key, const double value) {
     node.destroy();
 
     node.m_type = Type::FLOAT64;
-    node.m_value.float64 = value;
+    node.m_data.float64 = value;
 }
 
 void Object::set(std::string &&key, const bool value) {
@@ -247,7 +249,7 @@ void Object::set(std::string &&key, const bool value) {
     node.destroy();
 
     node.m_type = Type::BOOL;
-    node.m_value.boolean = value;
+    node.m_data.boolean = value;
 }
 
 void Object::set(std::string &&key, std::string &&value) {
@@ -255,7 +257,7 @@ void Object::set(std::string &&key, std::string &&value) {
     node.destroy();
 
     node.m_type = Type::STRING;
-    node.m_value.string = std::move(value);
+    node.m_data.string = std::move(value);
 }
 
 void Object::set(std::string &&key, std::nullptr_t null) {
@@ -263,7 +265,7 @@ void Object::set(std::string &&key, std::nullptr_t null) {
     node.destroy();
 
     node.m_type = Type::NULL_T;
-    node.m_value.null = null;
+    node.m_data.null = null;
 }
 
 void Object::destroy() {
@@ -271,7 +273,7 @@ void Object::destroy() {
 }
 
 Object::Object() {
-    m_nodes.reserve(1 << 3);
+    m_nodes.reserve(DEFAULT_CAPACITY);
 }
 
 Object::Object(Object &&other) {

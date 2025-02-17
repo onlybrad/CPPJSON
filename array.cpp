@@ -1,5 +1,7 @@
 #include "parser.hpp"
 
+#define DEFAULT_CAPACITY 1 << 3
+
 namespace CJSON {
 
 JSON *Array::operator[](const unsigned int index) {
@@ -33,7 +35,7 @@ Array *Array::getArray(const unsigned int index, bool &success) {
         return nullptr;
     }
     success = true;
-    return &m_nodes[index].m_value.array;
+    return &m_nodes[index].m_data.array;
 }
 
 Object *Array::getObject(const unsigned int index, bool &success) {
@@ -42,7 +44,7 @@ Object *Array::getObject(const unsigned int index, bool &success) {
         return nullptr;
     }
     success = true;
-    return &m_nodes[index].m_value.object;
+    return &m_nodes[index].m_data.object;
 }
 
 int64_t Array::getInt64(const unsigned int index, bool &success) {
@@ -51,7 +53,7 @@ int64_t Array::getInt64(const unsigned int index, bool &success) {
         return 0;
     }
     success = true;
-    return m_nodes[index].m_value.int64;
+    return m_nodes[index].m_data.int64;
 }
 
 uint64_t Array::getUint64(const unsigned int index, bool &success) {
@@ -60,7 +62,7 @@ uint64_t Array::getUint64(const unsigned int index, bool &success) {
         return 0U;
     }
     success = true;
-    return m_nodes[index].m_value.uint64;
+    return m_nodes[index].m_data.uint64;
 }
 
 double Array::getFloat64(const unsigned int index, bool &success) {
@@ -69,7 +71,7 @@ double Array::getFloat64(const unsigned int index, bool &success) {
         return 0.0;
     }
     success = true;
-    return m_nodes[index].m_value.float64;
+    return m_nodes[index].m_data.float64;
 }
 
 bool Array::getBool(const unsigned int index, bool &success) {
@@ -78,7 +80,7 @@ bool Array::getBool(const unsigned int index, bool &success) {
         return false;
     }
     success = true;
-    return m_nodes[index].m_value.boolean;
+    return m_nodes[index].m_data.boolean;
 }
 
 std::string *Array::getString(const unsigned int index, bool &success) {
@@ -87,7 +89,7 @@ std::string *Array::getString(const unsigned int index, bool &success) {
         return nullptr;
     }
     success = true;
-    return &m_nodes[index].m_value.string;
+    return &m_nodes[index].m_data.string;
 }
 
 nullptr_t Array::getNull(const unsigned int index, bool &success) {
@@ -96,7 +98,7 @@ nullptr_t Array::getNull(const unsigned int index, bool &success) {
 }
 
 void Array::set(const unsigned int index, JSON &&value) {
-    if(value.m_type == Type::ARRAY && &value.m_value.array == this) {
+    if(value.m_type == Type::ARRAY && &value.m_data.array == this) {
         return;
     }
 
@@ -119,7 +121,7 @@ void Array::set(const unsigned int index, Array &&value) {
 
     m_nodes[index].destroy();
     m_nodes[index].m_type = Type::ARRAY;
-    m_nodes[index].m_value.array = std::move(value);
+    m_nodes[index].m_data.array = std::move(value);
 }
 
 void Array::set(const unsigned int index, Object &&value) {
@@ -128,7 +130,7 @@ void Array::set(const unsigned int index, Object &&value) {
     }
     m_nodes[index].destroy();
     m_nodes[index].m_type = Type::OBJECT;
-    m_nodes[index].m_value.object = std::move(value);
+    m_nodes[index].m_data.object = std::move(value);
 }
 
 void Array::set(const unsigned int index, const int64_t value) {
@@ -137,7 +139,7 @@ void Array::set(const unsigned int index, const int64_t value) {
     }
     m_nodes[index].destroy();
     m_nodes[index].m_type = Type::INT64;
-    m_nodes[index].m_value.int64 = value;
+    m_nodes[index].m_data.int64 = value;
 }
 
 void Array::set(const unsigned int index, const uint64_t value) {
@@ -146,7 +148,7 @@ void Array::set(const unsigned int index, const uint64_t value) {
     }
     m_nodes[index].destroy();
     m_nodes[index].m_type = Type::UINT64;
-    m_nodes[index].m_value.uint64 = value;
+    m_nodes[index].m_data.uint64 = value;
 }
 
 void Array::set(const unsigned int index, const double value) {
@@ -155,7 +157,7 @@ void Array::set(const unsigned int index, const double value) {
     }
     m_nodes[index].destroy();
     m_nodes[index].m_type = Type::FLOAT64;
-    m_nodes[index].m_value.float64 = value; 
+    m_nodes[index].m_data.float64 = value; 
 }
 
 void Array::set(const unsigned int index, const bool value) {
@@ -164,7 +166,7 @@ void Array::set(const unsigned int index, const bool value) {
     }
     m_nodes[index].destroy();
     m_nodes[index].m_type = Type::BOOL;
-    m_nodes[index].m_value.boolean = value; 
+    m_nodes[index].m_data.boolean = value; 
 }
 
 void Array::set(const unsigned int index, std::string &&value) {
@@ -173,7 +175,7 @@ void Array::set(const unsigned int index, std::string &&value) {
     }
     m_nodes[index].destroy();
     m_nodes[index].m_type = Type::STRING;
-    m_nodes[index].m_value.string = std::move(value); 
+    m_nodes[index].m_data.string = std::move(value); 
 }
 
 void Array::set(const unsigned int index, std::nullptr_t null) {
@@ -182,7 +184,7 @@ void Array::set(const unsigned int index, std::nullptr_t null) {
     }
     m_nodes[index].destroy();
     m_nodes[index].m_type = Type::NULL_T;
-    m_nodes[index].m_value.null = null;
+    m_nodes[index].m_data.null = null;
 }
 
 void Array::push_back(Array &&value) {
@@ -192,7 +194,7 @@ void Array::push_back(Array &&value) {
     m_nodes.emplace_back();
     JSON &node = m_nodes.back();
     node.m_type = Type::ARRAY;
-    node.m_value.array = std::move(value);
+    node.m_data.array = std::move(value);
 }
 
 void Array::push_back(Object &&value) {
@@ -202,7 +204,7 @@ void Array::push_back(Object &&value) {
     m_nodes.emplace_back();
     JSON &node = m_nodes.back();
     node.m_type = Type::OBJECT;
-    node.m_value.object = std::move(value);
+    node.m_data.object = std::move(value);
 }
 
 void Array::push_back(const int64_t value) {
@@ -212,7 +214,7 @@ void Array::push_back(const int64_t value) {
     m_nodes.emplace_back();
     JSON &node = m_nodes.back();
     node.m_type = Type::INT64;
-    node.m_value.int64 = value;
+    node.m_data.int64 = value;
 }
 
 void Array::push_back(const uint64_t value) {
@@ -222,7 +224,7 @@ void Array::push_back(const uint64_t value) {
     m_nodes.emplace_back();
     JSON &node = m_nodes.back();
     node.m_type = Type::UINT64;
-    node.m_value.uint64 = value;
+    node.m_data.uint64 = value;
 }
 
 void Array::push_back(const double value) {
@@ -232,7 +234,7 @@ void Array::push_back(const double value) {
     m_nodes.emplace_back();
     JSON &node = m_nodes.back();
     node.m_type = Type::FLOAT64;
-    node.m_value.float64 = value;
+    node.m_data.float64 = value;
 }
 
 void Array::push_back(const bool value) {
@@ -242,7 +244,7 @@ void Array::push_back(const bool value) {
     m_nodes.emplace_back();
     JSON &node = m_nodes.back();
     node.m_type = Type::BOOL;
-    node.m_value.boolean = value;
+    node.m_data.boolean = value;
 }
 
 void Array::push_back(std::string &&value) {
@@ -252,7 +254,7 @@ void Array::push_back(std::string &&value) {
     m_nodes.emplace_back();
     JSON &node = m_nodes.back();
     node.m_type = Type::STRING;
-    node.m_value.string = std::move(value);
+    node.m_data.string = std::move(value);
 }
 
 void Array::push_back(std::nullptr_t null) {
@@ -262,7 +264,7 @@ void Array::push_back(std::nullptr_t null) {
     m_nodes.emplace_back();
     JSON &node = m_nodes.back();
     node.m_type = Type::NULL_T;
-    node.m_value.null = null;
+    node.m_data.null = null;
 }
 
 unsigned int Array::size() {
@@ -274,7 +276,7 @@ void Array::destroy() {
 }
 
 Array::Array() {
-    m_nodes.reserve(1 << 3);
+    m_nodes.reserve(DEFAULT_CAPACITY);
 }
 
 Array::Array(Array &&other) {

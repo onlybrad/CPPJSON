@@ -6,12 +6,19 @@
 namespace CJSON {
 
 Data::Data() : null(nullptr) {}
+
 Data::~Data() {}
 
+Data &Data::operator=(Data &&other) {
+    std::memcpy((unsigned char*)this, (unsigned char*)&other, sizeof(*this));
+    other.null = nullptr;
+
+    return *this;
+}
+
 JSON::JSON(JSON &&other) : m_type(other.m_type) {
-    std::memcpy((unsigned char*)&m_value, (unsigned char*)&other.m_value, sizeof(Data));
+    m_data = std::move(other.m_data);
     other.m_type = Type::NULL_T;
-    other.m_value.null = nullptr;
 }
 
 JSON::~JSON() {
@@ -23,7 +30,7 @@ Type JSON::type() const {
 }
 
 Data &JSON::value() {
-    return m_value;
+    return m_data;
 }
 
 std::string JSON::parseUtf8String(const Token &token, bool &success) {
@@ -153,11 +160,11 @@ bool JSON::parseString(Tokens &tokens) {
     std::string string = parseUtf8String(token, success);
     if(success) {
         makeString();
-        m_value.string = std::move(string);
+        m_data.string = std::move(string);
         tokens.index++;
     } else {
         m_type = Type::ERROR;
-        m_value.error = Error::STRING_FAILED_TO_PARSE;
+        m_data.error = Error::STRING_FAILED_TO_PARSE;
     }
 
     return success;
@@ -174,54 +181,54 @@ bool JSON::parseNumber(Tokens &tokens) {
         const double float64 = parseFloat64(string, success);
         if(!success) {
             m_type = Type::ERROR;
-            m_value.error = Error::FLOAT64_FAILED_TO_PARSE;
+            m_data.error = Error::FLOAT64_FAILED_TO_PARSE;
             return false;
         }
 
         m_type = Type::FLOAT64;
-        m_value.float64 = float64;
+        m_data.float64 = float64;
     } else if(string[0] == '-') {
         if(token.type == TokenType::SCIENTIFIC_INT) {
             const long double long_double = parseLongDouble(string, success);
             if(!success || long_double < INT64_MIN || long_double > INT64_MAX) {
                 m_type = Type::ERROR;
-                m_value.error = Error::INT64_FAILED_TO_PARSE;
+                m_data.error = Error::INT64_FAILED_TO_PARSE;
                 return false;
             }
 
             m_type = Type::INT64;
-            m_value.int64 = (int64_t)long_double;
+            m_data.int64 = (int64_t)long_double;
         } else {
             const int64_t int64 = parseInt64(string, success);
             if(!success) {
                 m_type = Type::ERROR;
-                m_value.error = Error::INT64_FAILED_TO_PARSE;
+                m_data.error = Error::INT64_FAILED_TO_PARSE;
                 return false;     
             }
 
             m_type = Type::INT64;
-            m_value.int64 = int64;
+            m_data.int64 = int64;
         }
     } else if(token.type == TokenType::SCIENTIFIC_INT) {
         const long double long_double = parseLongDouble(string, success);
         if(!success || long_double > UINT64_MAX) {
             m_type = Type::ERROR;
-            m_value.error = Error::UINT64_FAILED_TO_PARSE;
+            m_data.error = Error::UINT64_FAILED_TO_PARSE;
             return false;
         }
 
         m_type = Type::UINT64;
-        m_value.uint64 = (uint64_t)long_double;
+        m_data.uint64 = (uint64_t)long_double;
     } else {
         const uint64_t uint64 = parseUint64(string, success);
         if(!success) {
             m_type = Type::ERROR;
-            m_value.error = Error::UINT64_FAILED_TO_PARSE;
+            m_data.error = Error::UINT64_FAILED_TO_PARSE;
             return false; 
         }
 
         m_type = Type::UINT64;
-        m_value.uint64 = uint64;
+        m_data.uint64 = uint64;
     }
 
     tokens.index++;
@@ -233,14 +240,14 @@ void JSON::parseBool(Tokens &tokens) {
     const Token &token = tokens.data[tokens.index]; 
 
     m_type = Type::BOOL;
-    m_value.boolean = token.value[0] == 't';
+    m_data.boolean = token.value[0] == 't';
 
     tokens.index++;
 }
 
 void JSON::parseNull(Tokens &tokens) {
     m_type = Type::NULL_T;
-    m_value.null = NULL;
+    m_data.null = NULL;
 
     tokens.index++;
 }
@@ -250,7 +257,7 @@ bool JSON::parseArray(Tokens &tokens) {
 
     if(tokens.data.size() == tokens.index) {
         m_type = Type::ERROR;
-        m_value.error = Error::ARRAY_FAILED_TO_PARSE;
+        m_data.error = Error::ARRAY_FAILED_TO_PARSE;
         return false;
     }
 
@@ -267,14 +274,14 @@ bool JSON::parseArray(Tokens &tokens) {
         JSON &next = array.m_nodes.back();
 
         if(!next.parseTokens(tokens)) {
-            const Error error = next.m_value.error;
+            const Error error = next.m_data.error;
             array.destroy();
             m_type = Type::ERROR;
             
             if(error == Error::TOKEN_ERROR) {
-                m_value.error = Error::ARRAY_INVALID_VALUE;
+                m_data.error = Error::ARRAY_INVALID_VALUE;
             } else {
-                m_value.error = error;
+                m_data.error = error;
             }
             return false;
         }
@@ -294,13 +301,13 @@ bool JSON::parseArray(Tokens &tokens) {
 
         array.destroy();
         m_type = Type::ERROR;
-        m_value.error = Error::ARRAY_MISSING_COMMA_OR_RBRACKET;
+        m_data.error = Error::ARRAY_MISSING_COMMA_OR_RBRACKET;
         return false;
     }
 
     array.destroy();
     m_type = Type::ERROR;
-    m_value.error = Error::ARRAY_FAILED_TO_PARSE;
+    m_data.error = Error::ARRAY_FAILED_TO_PARSE;
     return false;
 }
 
@@ -309,7 +316,7 @@ bool JSON::parseObject(Tokens &tokens) {
 
     if(tokens.data.size() == tokens.index) {
         m_type = Type::ERROR;
-        m_value.error = Error::OBJECT_FAILED_TO_PARSE;
+        m_data.error = Error::OBJECT_FAILED_TO_PARSE;
         return false;
     }
 
@@ -325,7 +332,7 @@ bool JSON::parseObject(Tokens &tokens) {
         if(token->type != TokenType::STRING) {
             object.destroy();
             m_type = Type::ERROR;
-            m_value.error = Error::OBJECT_INVALID_KEY;
+            m_data.error = Error::OBJECT_INVALID_KEY;
             return false;
         }
 
@@ -334,7 +341,7 @@ bool JSON::parseObject(Tokens &tokens) {
         if(!success) {
             object.destroy();
             m_type = Type::ERROR;
-            m_value.error = Error::OBJECT_INVALID_KEY;
+            m_data.error = Error::OBJECT_INVALID_KEY;
             return false;
         }
 
@@ -343,7 +350,7 @@ bool JSON::parseObject(Tokens &tokens) {
         if(token->type != TokenType::COLON) {
             object.destroy();
             m_type = Type::ERROR;
-            m_value.error = Error::OBJECT_MISSING_COLON;
+            m_data.error = Error::OBJECT_MISSING_COLON;
             tokens.index++;
             return false;
         }
@@ -353,14 +360,14 @@ bool JSON::parseObject(Tokens &tokens) {
         JSON &json = object.m_nodes[std::move(key)]; 
 
         if(!json.parseTokens(tokens)) {
-            const Error error = json.m_value.error;
+            const Error error = json.m_data.error;
             object.destroy();
             m_type = Type::ERROR;
 
             if(error == Error::TOKEN_ERROR) {
-                m_value.error = Error::OBJECT_INVALID_VALUE;
+                m_data.error = Error::OBJECT_INVALID_VALUE;
             } else {
-                m_value.error = error;
+                m_data.error = error;
             }
             return false;
         }
@@ -380,22 +387,21 @@ bool JSON::parseObject(Tokens &tokens) {
 
         object.destroy();
         m_type = Type::ERROR;
-        m_value.error = Error::ARRAY_MISSING_COMMA_OR_RBRACKET;
+        m_data.error = Error::ARRAY_MISSING_COMMA_OR_RBRACKET;
         return false;
     }
     
     object.destroy();
     m_type = Type::ERROR;
-    m_value.error = Error::OBJECT_FAILED_TO_PARSE;
+    m_data.error = Error::OBJECT_FAILED_TO_PARSE;
     return false; 
 }
 
 JSON &JSON::operator=(JSON &&other) {
     if(this != &other) {
         m_type = other.m_type;
-        std::memcpy((unsigned char*)&m_value, (unsigned char*)&other.m_value, sizeof(Data));
         other.m_type = Type::NULL_T;
-        other.m_value.null = nullptr;
+        m_data = std::move(other.m_data);
     }
 
     return *this;
@@ -404,82 +410,82 @@ JSON &JSON::operator=(JSON &&other) {
 Array &JSON::makeArray() {
     destroy();
     m_type = Type::ARRAY;
-    new (&m_value.array) Array();
+    new (&m_data.array) Array();
 
-    return m_value.array;
+    return m_data.array;
 }
 
 Object &JSON::makeObject() {
     destroy();
     m_type = Type::OBJECT;
-    new (&m_value.object) Object();
+    new (&m_data.object) Object();
 
-    return m_value.object;
+    return m_data.object;
 }
 
 std::string &JSON::makeString() {
     destroy();
     m_type = Type::STRING;
-    new (&m_value.string) std::string();
+    new (&m_data.string) std::string();
 
-    return m_value.string;
+    return m_data.string;
 }
 
 void JSON::set(const std::string &str) {
     destroy();
     m_type = Type::STRING;
-    new (&m_value.string) std::string(str);
+    new (&m_data.string) std::string(str);
 }
 
 void JSON::set(std::string &&str) {
     destroy();
     m_type = Type::STRING;
-    new (&m_value.string) std::string(std::move(str));
+    new (&m_data.string) std::string(std::move(str));
 }
 
 void JSON::set(const int64_t value) {
     destroy();
     m_type = Type::INT64;
-    m_value.int64 = value;
+    m_data.int64 = value;
 }
 
 void JSON::set(const uint64_t value) {
     destroy();
     m_type = Type::UINT64;
-    m_value.uint64 = value;
+    m_data.uint64 = value;
 }
 
 void JSON::set(const double value) {
     destroy();
     m_type = Type::FLOAT64;
-    m_value.float64 = value;
+    m_data.float64 = value;
 }
 
 void JSON::set(const bool value) {
     destroy();
     m_type = Type::BOOL;
-    m_value.boolean = value;
+    m_data.boolean = value;
 }
 
 void JSON::set(std::nullptr_t null) {
     destroy();
     m_type = Type::NULL_T;
-    m_value.null = null;
+    m_data.null = null;
 }
 
 void JSON::destroy() {
     switch(m_type) {
     case Type::OBJECT:
-        m_value.object.destroy(); break;
+        m_data.object.destroy(); break;
     case Type::ARRAY:
-        m_value.array.destroy(); break;
+        m_data.array.destroy(); break;
     case Type::STRING:
-        m_value.string.~basic_string(); break;
+        m_data.string.~basic_string(); break;
     default:;
     }
 
     m_type = Type::NULL_T;
-    m_value.null = nullptr;
+    m_data.null = nullptr;
 }
 
 Query JSON::operator[](const unsigned int index) {
@@ -524,7 +530,7 @@ bool JSON::parseTokens(Tokens &tokens) {
     case TokenType::RCURLY:
     case TokenType::INVALID:
         m_type = Type::ERROR;
-        m_value.error = Error::TOKEN_ERROR;
+        m_data.error = Error::TOKEN_ERROR;
     }
 
     return false;
@@ -546,7 +552,7 @@ std::unique_ptr<JSON> JSON::parse(const std::string &data) {
 
     if(token->type == TokenType::INVALID) {
         root->m_type = Type::ERROR;
-        root->m_value.error = Error::TOKEN_ERROR;
+        root->m_data.error = Error::TOKEN_ERROR;
         return root;
     }
 

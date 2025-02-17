@@ -2,7 +2,7 @@
 CC            := g++
 STD           := -std=c++11
 INCLUDES      :=
-FLAGS         := -Wall -Wextra -Wpedantic -Wconversion -Wstrict-overflow=5 -Wshadow -Wunused-macros -Wcast-qual -Wcast-align -Wwrite-strings -Wdangling-else -Wlogical-op -Winline -fno-exceptions
+FLAGS         := -Wall -Wextra -Wpedantic -Wconversion -Wstrict-overflow=5 -Wshadow -Wunused-macros -Wcast-qual -Wcast-align -Wwrite-strings -Wdangling-else -Wlogical-op -Winline -fno-exceptions -fdiagnostics-all-candidates
 SOURCE        := *.cpp
 
 test1.exe: ./tests/test1.cpp $(SOURCE)
