@@ -92,7 +92,7 @@ std::string *Array::getString(const unsigned int index, bool &success) {
     return &m_nodes[index].m_data.string;
 }
 
-nullptr_t Array::getNull(const unsigned int index, bool &success) {
+std::nullptr_t Array::getNull(const unsigned int index, bool &success) {
     success = !(index >= m_nodes.size() || m_nodes[index].m_type != Type::NULL_T);
     return nullptr;
 }
