@@ -330,7 +330,7 @@ Available functions (all come in 2 versions: with no parameter and with a refere
 - getInt64   => std::int64_t
 - getUint64  => std::uint64_t
 - getObject  => Object*
-- getArray   => struct CJSON_Array*
+- getArray   => Array*
 - getBool    => bool
 - getNull    => void*
 
@@ -485,7 +485,7 @@ Available functions (all come in 2 versions: with no parameter and with a refere
 - getInt64   => std::int64_t
 - getUint64  => std::uint64_t
 - getObject  => Object*
-- getArray   => struct CJSON_Array*
+- getArray   => Array*
 - getBool    => bool
 - getNull    => std::nullptr_t
 
