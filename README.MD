@@ -325,7 +325,7 @@ int main() {
 
 Available functions (all come in 2 versions: with no parameter and with a reference to a success bool)
 
-- getString  => const char*
+- getString  => String*
 - getFloat64 => double
 - getInt64   => std::int64_t
 - getUint64  => std::uint64_t
@@ -480,7 +480,7 @@ int main() {
 
 Available functions (all come in 2 versions: with no parameter and with a reference to a success bool)
 
-- getString  => const char*
+- getString  => String*
 - getFloat64 => double
 - getInt64   => std::int64_t
 - getUint64  => std::uint64_t
