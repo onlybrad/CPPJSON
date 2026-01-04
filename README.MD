@@ -1,4 +1,4 @@
-# CJSON
+# CPPJSON
 
 **JSON parser in C++.**
 
