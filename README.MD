@@ -252,13 +252,12 @@ int main() {
     json.set(200U); // first way
     json = 200U;    // second way
 
-    //become nullptr
-
+    //becomes nullptr
     json.set();        //first way (default argument)
     json.set(nullptr); //first way
     json = nullptr;    //second way
 
-    //become bool
+    //becomes bool
     json.set(true); //first way
     json = true;    //second way
 
@@ -313,9 +312,9 @@ int main() {
         //if someValue is not nullptr then the Object contains a key "some-key"
     }
 
-    JSON *const some_other_value = object["some-other-key"];
-    if(some_other_value != nullptr) {
-        //if some_other_value is not nullptr then the Object contains a key "some-other-key" or the Object does not contain a key "some-other-key" and successfully allocated memory for a new entry with "some-other-key" as the key.
+    JSON *const someOtherValue = object["some-other-key"];
+    if(someOtherValue != nullptr) {
+        //if someOtherValue is not nullptr then the Object contains a key "some-other-key" or the Object does not contain a key "some-other-key" and successfully allocated memory for a new entry with "some-other-key" as the key.
     }
 
     return EXIT_SUCCESS;
@@ -348,7 +347,7 @@ int main() {
     //...
 
     bool success;
-    Array *const someArray =  object.getArray("some-key", success);
+    Array *const someArray =  object->getArray("some-key", success);
     if(success) {
         //if sucess is true then the Object contains a key "some-key" and the type of the underlying JSON object value is JSON::ARRAY. someArray is not nullptr
     } else {
@@ -395,7 +394,7 @@ int main() {
     //...
 
     //first way
-    JSON *json = object["someKey"];
+    JSON *json = *object["someKey"];
     if(json == nullptr) {
         //key didn't exist and memory allocation failed
         return EXIT_FAILURE;
@@ -415,7 +414,7 @@ int main() {
     Array *someArray;
 
     //first way
-    json = object["someOtherKey"];
+    json = *object["someOtherKey"];
     if(json == nullptr) {
         //key didn't exist and memory allocation failed
         return EXIT_FAILURE;
@@ -433,7 +432,7 @@ int main() {
     //...
 
     //first way
-    json = object["somePrimitiveValue"];
+    json = *object["somePrimitiveValue"];
     if(json == nullptr) {
         //key didn't exist and memory allocation failed
         return EXIT_FAILURE;
@@ -563,7 +562,7 @@ int main() {
     //...
 
     //first way
-    JSON *json = array[10U];
+    JSON *json = *array[10U];
     if(json == nullptr) {
         //index dit not exist and memory allocation failed
         return EXIT_FAILURE;
@@ -583,7 +582,7 @@ int main() {
     Array *someArray;
 
     //first way
-    json = array[11U];
+    json = *array[11U];
     if(json == nullptr) {
         //index didn't exist and memory allocation failed
         return EXIT_FAILURE;
@@ -601,7 +600,7 @@ int main() {
     //...
 
     //first way
-    json = object[12U];
+    json = *array[12U];
     if(json == nullptr) {
         //key didn't exist and memory allocation failed
         return EXIT_FAILURE;
