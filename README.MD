@@ -186,7 +186,7 @@ int main() {
     }
 
     bool success;
-    int64_t myUint64 = json["key1"]["innerKey2"].asUint64(success);
+    uint64_t myUint64 = json["key1"]["innerKey2"].asUint64(success);
     if(!success) {
         //if success is true then the JSON object has this form: {"key1": {"innerKey2": myUint64}} and myUint64 is stored as an unsigned 64 bit integer
     }
