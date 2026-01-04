@@ -1,6 +1,6 @@
 # CJSON
 
-**JSON parser in C (can be compiled and/or used with C++ too).**
+**JSON parser in C++.**
 
 ## Table of contents
 - [Table of contents](#table-of-contents)
