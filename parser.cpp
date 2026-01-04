@@ -1,567 +1,658 @@
+#include <cassert>
 #include <cstring>
+#include <limits>
+#include <new>
+
 #include "parser.hpp"
-#include "lexer.hpp"
 #include "util.hpp"
+#include "file.hpp"
+#include "lexer.hpp"
 
-namespace CJSON {
+namespace CPPJSON {
 
-Data::Data() : null(nullptr) {}
+bool Parser::parseToken(JSON &json, Tokens &tokens) noexcept {
+    switch(tokens.currentToken->type) {
+    case Token::Type::STRING: 
+        return parseString(json, tokens);
+    
+    case Token::Type::INT:
+    case Token::Type::FLOAT:
+    case Token::Type::SCIENTIFIC_INT: 
+        return parseNumber(json, tokens);
+    
+    case Token::Type::BOOL: 
+        parseBool(json, tokens);
+        return true;
+    
+    case Token::Type::NUL: 
+        parseNull(json, tokens);
+        return true;
+    
+    case Token::Type::LBRACKET: 
+        return parseArray(json, tokens);
+    
+    case Token::Type::LCURLY:
+        return parseObject(json, tokens);
+    
+    case Token::Type::COLON:
+    case Token::Type::COMMA:
+    case Token::Type::RBRACKET:
+    case Token::Type::RCURLY:
+    case Token::Type::INVALID:
+    case Token::Type::DONE:
+        json.set(JSON::Error::TOKEN);
+    }
 
-Data::~Data() {}
-
-Data &Data::operator=(Data &&other) {
-    std::memcpy((unsigned char*)this, (unsigned char*)&other, sizeof(*this));
-    other.null = nullptr;
-
-    return *this;
+    return false;
 }
 
-JSON::JSON(JSON &&other) : m_type(other.m_type) {
-    m_data = std::move(other.m_data);
-    other.m_type = Type::NULL_T;
-}
+bool Parser::decodeStringToken(String &str, Token &token) noexcept {
+    const char *const input_end     = token.value + token.length - 2;
+    const char       *input_current = token.value + 1;
+    bool              escaping      = false;
 
-JSON::~JSON() {
-    destroy();
-}
-
-Type JSON::type() const {
-    return m_type; 
-}
-
-Data &JSON::value() {
-    return m_data;
-}
-
-std::string JSON::parseUtf8String(const Token &token, bool &success) {
-    std::string string;
-    string.reserve(token.value.size - 1U);
-
-    unsigned int index = 1U;
-    bool escaping = false;
-
-    while(index < token.value.size - 1U) {
-        switch(token.value[index]) {
+    while(input_current != input_end + 1) {
+        switch(*input_current) {
             case '\b':
             case '\f':
             case '\n':
             case '\r':
             case '\t':
-                success = false;
-                return string;
+                return false;
         }
 
         if(!escaping) {
-            if(token.value[index] == '\\') {
+            if(*input_current == '\\') {
                 escaping = true;
-                index++;
+                input_current++;
                 continue;
             }
-            
-            string.push_back(token.value[index++]);
+
+            str.push(*(input_current++));
             continue;
         } 
         
-        else switch(token.value[index]) {
+        switch(*input_current) {
         case '"':
-            string.push_back('"');
-            index++;
-            escaping = false;
+            escaping    = false;
+            str.push('"');
+            input_current++;
             continue;
         case 'b':
-            string.push_back('\b');
-            index++;
-            escaping = false;
+            escaping    = false;
+            str.push('\b');
+            input_current++;
             continue;
         case 'f':
-            string.push_back('\f');
-            index++;
-            escaping = false;
+            escaping    = false;
+            str.push('\f');
+            input_current++;
             continue;
         case 'n':
-            string.push_back('\n');
-            index++;
-            escaping = false;
+            escaping    = false;
+            str.push('\n');
+            input_current++;
             continue;
         case 'r':
-            string.push_back('\r');
-            index++;
-            escaping = false;
+            escaping    = false;
+            str.push('\r');
+            input_current++;
             continue;
         case 't':
-            string.push_back('\t');
-            index++;
-            escaping = false;
+            escaping    = false;
+            str.push('\t');
+            input_current++;
             continue;
         case '/':
-            string.push_back('/');
-            index++;
-            escaping = false;
+            escaping    = false;
+            str.push('/');
+            input_current++;
             continue;
         case '\\': {
-            string.push_back('\\');
-            index++;
-            escaping = false;
+            escaping    = false;
+            str.push('\\');
+            input_current++;
             continue;
         }
         case 'u': {
-            if(index + 4U >= token.value.size - 1U) {
-                success = false;
-                return string;
-            }
+            char utf8Str[5];
 
-            index++;
-
-            const uint16_t codepoint = parseCodepoint(token.value + index, success);
-            //\u0000 is apparently an acceptable escaped character in JSON so if the parsing function returns 0 then it's either an error or \u0000. \0 would break cstrings so it's gonna be treated as an error as well.
-            if(codepoint == 0U) {
-                success = false;
-                return string; 
-            }
-
-            if(VALID_2_BYTES_UTF16(codepoint)) {
-                utf16ToUtf8(string, codepoint);
-                index += 4U;
-                escaping = false;
-                continue;
-            }
-
-            if(index + 9U >= token.value.size - 1U || token.value[index + 4U] != '\\' || token.value[index + 5U] != 'u') {
-                success = false;
-                return string; 
-            }
-
-            const uint16_t low = parseCodepoint(token.value + index + 6U, success);
-            if(!success || !VALID_4_BYTES_UTF16(codepoint, low)) {
-                success = false;
-                return string; 
-            }
-
-            utf16ToUtf8(string, codepoint, low);
-            index += 10U;
-            escaping = false;
-            continue;
-        }
-        default:
-            success = false;
-            return string;      
-    }
-    }
-
-    success = !escaping;
-
-    return string;
-}
-
-bool JSON::parseString(Tokens &tokens) {
-    const Token &token = tokens.data[tokens.index]; 
-    bool success;
-
-    std::string string = parseUtf8String(token, success);
-    if(success) {
-        makeString();
-        m_data.string = std::move(string);
-        tokens.index++;
-    } else {
-        m_type = Type::ERROR;
-        m_data.error = Error::STRING_FAILED_TO_PARSE;
-    }
-
-    return success;
-}
-
-bool JSON::parseNumber(Tokens &tokens) {
-    std::string string;
-    bool success;
-    const Token &token = tokens.data[tokens.index]; 
-
-    string.assign(token.value.data, token.value.size);
-
-    if(token.type == TokenType::FLOAT) {
-        const double float64 = parseFloat64(string, success);
-        if(!success) {
-            m_type = Type::ERROR;
-            m_data.error = Error::FLOAT64_FAILED_TO_PARSE;
-            return false;
-        }
-
-        m_type = Type::FLOAT64;
-        m_data.float64 = float64;
-    } else if(string[0] == '-') {
-        if(token.type == TokenType::SCIENTIFIC_INT) {
-            const long double long_double = parseLongDouble(string, success);
-            if(!success || long_double < INT64_MIN || long_double > INT64_MAX) {
-                m_type = Type::ERROR;
-                m_data.error = Error::INT64_FAILED_TO_PARSE;
+            if(input_end - input_current < 4) {
                 return false;
             }
 
-            m_type = Type::INT64;
-            m_data.int64 = (int64_t)long_double;
-        } else {
-            const int64_t int64 = parseInt64(string, success);
-            if(!success) {
-                m_type = Type::ERROR;
-                m_data.error = Error::INT64_FAILED_TO_PARSE;
-                return false;     
+            input_current++;
+
+            bool success;
+            const std::uint16_t high = Util::hexToUtf16(input_current, success);
+            //\u0000 is apparently an acceptable escaped character in JSON so if the parsing function returns 0 then it's either an error or \u0000. \0 would break cstrings so it's gonna be treated as an error as well.
+            if(high == 0U) {
+                return false;    
             }
 
-            m_type = Type::INT64;
-            m_data.int64 = int64;
+            if(Util::isValidUtf16(high)) {
+                str           += Util::utf16ToUtf8(utf8Str, high);
+                input_current += 4;
+                escaping       = false;
+                continue;
+            }
+
+            if(input_end - input_current < 9 || input_current[4] != '\\' || input_current[5] != 'u') {
+                return false;
+            }
+
+            const std::uint16_t low = Util::hexToUtf16(input_current + 6, success);
+            if(!success || !Util::isValidUtf16(high, low)) {
+                return false; 
+            }
+            
+            str           += Util::utf16ToUtf8(utf8Str, high, low);
+            input_current += 10;
+            escaping       = false;
+            continue;
         }
-    } else if(token.type == TokenType::SCIENTIFIC_INT) {
-        const long double long_double = parseLongDouble(string, success);
-        if(!success || long_double > UINT64_MAX) {
-            m_type = Type::ERROR;
-            m_data.error = Error::UINT64_FAILED_TO_PARSE;
+        default:
+            return false;        
+    }
+    }
+
+    return !escaping;
+}
+
+bool Parser::parseString(JSON &json, Tokens &tokens) noexcept {
+    assert(tokens.currentToken != nullptr);
+
+    String *const string = json.makeString(getStringAllocator()); 
+    assert(string != nullptr);
+    if(!string->reserve(tokens.currentToken->length - 1U)) {
+        json.set(JSON::Error::MEMORY);
+        return false;
+    }
+
+    if(!decodeStringToken(*string, *tokens.currentToken)) {
+        json.set(JSON::Error::STRING);
+        return false;
+    }
+
+    tokens.currentToken++;
+    return true;
+}
+
+bool Parser::parseArray(JSON &json, Tokens &tokens) noexcept {
+    assert(tokens.currentToken != nullptr);
+    
+    const unsigned length = tokens.currentToken->length;
+
+    tokens.currentToken++;
+
+    const Token *const lastToken = tokens.data.data() + tokens.data.size() - 1;
+    if(tokens.currentToken == lastToken) {
+        json.set(JSON::Error::ARRAY);
+        return false;
+    }
+    
+    Array *const array = json.makeArray(getArrayAllocator());
+    assert(array != nullptr);
+    if(!array->reserve(length)) {
+        json.set(JSON::Error::MEMORY);
+        return false;
+    }
+
+    if(tokens.currentToken->type == Token::Type::RBRACKET) {
+        tokens.currentToken++;
+        return true;
+    }
+
+    while(lastToken - tokens.currentToken >= 2) {
+        array->push();
+        JSON &nextJson = array->unsafeBack();
+        if(!parseToken(nextJson, tokens)) {
+            if(nextJson.m_value.error == JSON::Error::TOKEN) {
+                json.set(JSON::Error::ARRAY_VALUE);
+            } else {
+                json.set(nextJson.m_value.error);
+            }
             return false;
         }
 
-        m_type = Type::UINT64;
-        m_data.uint64 = (uint64_t)long_double;
-    } else {
-        const uint64_t uint64 = parseUint64(string, success);
-        if(!success) {
-            m_type = Type::ERROR;
-            m_data.error = Error::UINT64_FAILED_TO_PARSE;
-            return false; 
+        if(tokens.currentToken->type == Token::Type::COMMA) {
+            tokens.currentToken++;
+            continue;
         }
 
-        m_type = Type::UINT64;
-        m_data.uint64 = uint64;
+        if(tokens.currentToken->type == Token::Type::RBRACKET) {
+            tokens.currentToken++;
+            return true;
+        }
+
+        json.set(JSON::Error::MISSING_COMMA_OR_RCURLY);
+        return false;
     }
 
-    tokens.index++;
+    json.set(JSON::Error::ARRAY);
+    return false;
+}
+
+bool Parser::parseObject(JSON &json, Tokens &tokens) noexcept {
+    assert(tokens.currentToken != nullptr);
+
+    const unsigned length = tokens.currentToken->length;
+
+    tokens.currentToken++;
+    assert(tokens.currentToken != nullptr);
+    
+    const Token *const lastToken = tokens.data.data() + tokens.data.size() - 1;
+    if(tokens.currentToken == lastToken) {
+        json.set(JSON::Error::OBJECT);
+        return false;
+    }
+
+    Object *const object = json.makeObject(getObjectAllocator());
+    assert(object != nullptr);
+    if(!object->reserve(length)) {
+        json.set(JSON::Error::MEMORY);
+        return false;
+    }
+
+    if(tokens.currentToken->type == Token::Type::RCURLY) {
+        tokens.currentToken++;
+        return true;
+    }
+
+    while(lastToken - tokens.currentToken >= 4) {
+        if(tokens.currentToken->type != Token::Type::STRING) {
+            json.set(JSON::Error::OBJECT_KEY);
+            return false;
+        }
+
+        String key(getStringAllocator());
+        if(!decodeStringToken(key, *tokens.currentToken)) {
+            json.set(JSON::Error::OBJECT_KEY);
+            return false;
+        }
+
+        tokens.currentToken++;
+    
+        if(tokens.currentToken->type != Token::Type::COLON) {
+            json.set(JSON::Error::MISSING_COLON);
+            return false;
+        }
+
+        tokens.currentToken++;
+
+        JSON *nextJson = (*object)[std::move(key.getContainer())];
+        assert(nextJson != nullptr);
+        if(!parseToken(*nextJson, tokens)) {
+            if(nextJson->m_value.error == JSON::Error::TOKEN) {
+                json.set(JSON::Error::OBJECT_VALUE);
+            } else {
+                json.set(nextJson->m_value.error);
+            }
+            return false;
+        }
+
+        if(tokens.currentToken->type == Token::Type::COMMA) {
+            tokens.currentToken++;
+            continue;
+        }
+
+        if(tokens.currentToken->type == Token::Type::RCURLY) {
+            tokens.currentToken++;
+            return true;
+        }
+
+        json.set(JSON::Error::MISSING_COMMA_OR_RCURLY);
+        return false;
+    }
+    
+    json.set(JSON::Error::OBJECT);
+    return false;
+}
+
+bool Parser::parseNumber(JSON &json, Tokens &tokens) noexcept {
+    assert(tokens.currentToken != nullptr);
+
+    bool success;
+    char number[1 << 9] = {};
+
+    Token &token = *tokens.currentToken;
+    if(static_cast<std::size_t>(token.length) >= sizeof(number)) {
+        return false;
+    }
+
+    std::memcpy(number, token.value, static_cast<size_t>(token.length));
+
+    if(token.type == Token::Type::FLOAT) {
+        const double value = Util::parseFloat64(number, success);
+        if(!success) {
+            json.set(JSON::Error::FLOAT64);
+            return false;
+        }
+        json.set(value);
+    } else if(number[0] == '-') {
+        if(token.type == Token::Type::SCIENTIFIC_INT) {
+            const long double value = Util::parseLongDouble(number, success);
+            if(!success 
+            || value < static_cast<long double>(std::numeric_limits<std::int64_t>::min()) 
+            || value > static_cast<long double>(std::numeric_limits<std::int64_t>::max())
+            ){
+                json.set(JSON::Error::INT64);
+                return false;
+            }
+            json.set(static_cast<std::int64_t>(value));
+        } else {
+            const std::int64_t value = Util::parseInt64(number, success);
+            if(!success) {
+                json.set(JSON::Error::INT64);
+                return false; 
+            }
+            json.set(value);
+        }
+    } else if(token.type == Token::Type::SCIENTIFIC_INT) {
+        const long double value = Util::parseLongDouble(number, success);
+        if(!success || value > static_cast<long double>(std::numeric_limits<std::uint64_t>::max())) {
+            json.set(JSON::Error::UINT64);
+            return false;
+        }
+        json.set(static_cast<std::uint64_t>(value));
+    } else {
+        const uint64_t value = Util::parseUint64(number, success);
+        if(!success) {
+            json.set(JSON::Error::UINT64);
+            return false;
+        }
+        json.set(value);
+    }
+
+    tokens.currentToken++;
     
     return true;
 }
 
-void JSON::parseBool(Tokens &tokens) {
-    const Token &token = tokens.data[tokens.index]; 
+void Parser::parseNull(JSON &json, Tokens &tokens) noexcept {
+    assert(tokens.currentToken != nullptr);
 
-    m_type = Type::BOOL;
-    m_data.boolean = token.value[0] == 't';
-
-    tokens.index++;
+    json.set();
+    tokens.currentToken++;
 }
 
-void JSON::parseNull(Tokens &tokens) {
-    m_type = Type::NULL_T;
-    m_data.null = NULL;
+void Parser::parseBool(JSON &json, Tokens &tokens) noexcept {
+    assert(tokens.currentToken != nullptr);
 
-    tokens.index++;
+    json.set(tokens.currentToken->value[0] == 't');
+    tokens.currentToken++;
 }
 
-bool JSON::parseArray(Tokens &tokens) {
-    tokens.index++;
+Parser::Parser() noexcept {}
 
-    if(tokens.data.size() == tokens.index) {
-        m_type = Type::ERROR;
-        m_data.error = Error::ARRAY_FAILED_TO_PARSE;
-        return false;
+Parser::~Parser() noexcept {}
+
+JSON &Parser::init() noexcept {
+    if(m_arenas == nullptr) {
+        const std::array<unsigned, 3> arenaSizes = {0U, 0U, 0U};
+        if(!initArenas(arenaSizes, Arena::INFINITE_NODES)) {
+            m_json.set(JSON::Error::MEMORY);
+        }
     }
 
-    Array &array = makeArray();
-    Token *token = &tokens.data[tokens.index];
-
-    if(token->type == TokenType::RBRACKET) {
-        tokens.index++;
-        return true;
-    }
-
-    while(tokens.index + 2U < tokens.data.size()) {
-        array.m_nodes.emplace_back();
-        JSON &next = array.m_nodes.back();
-
-        if(!next.parseTokens(tokens)) {
-            const Error error = next.m_data.error;
-            array.destroy();
-            m_type = Type::ERROR;
-            
-            if(error == Error::TOKEN_ERROR) {
-                m_data.error = Error::ARRAY_INVALID_VALUE;
-            } else {
-                m_data.error = error;
-            }
-            return false;
-        }
-
-        token = &tokens.data[tokens.index];
- 
-        if(token->type == TokenType::COMMA) {
-            tokens.index++;
-            token++;
-            continue;
-        }
-
-        if(token->type == TokenType::RBRACKET) {
-            tokens.index++;
-            return true;
-        }
-
-        array.destroy();
-        m_type = Type::ERROR;
-        m_data.error = Error::ARRAY_MISSING_COMMA_OR_RBRACKET;
-        return false;
-    }
-
-    array.destroy();
-    m_type = Type::ERROR;
-    m_data.error = Error::ARRAY_FAILED_TO_PARSE;
-    return false;
+    return m_json;
 }
 
-bool JSON::parseObject(Tokens &tokens) {
-    tokens.index++;
+JSON &Parser::parse(const std::string &data) noexcept {
+    assert(data[0] != '\0');
 
-    if(tokens.data.size() == tokens.index) {
-        m_type = Type::ERROR;
-        m_data.error = Error::OBJECT_FAILED_TO_PARSE;
-        return false;
+    if(data.size() >= static_cast<std::size_t>(std::numeric_limits<unsigned>::max())) {
+        m_json.set(JSON::Error::TOO_LARGE);
+        return m_json;
     }
 
-    Object &object = makeObject();
-    Token *token = &tokens.data[tokens.index];
+    return parse(data.c_str(), static_cast<unsigned>(data.size()));
+}
 
-    if(token->type == TokenType::RCURLY) {
-        tokens.index++;
-        return true;
+JSON &Parser::parse(const char *const data) noexcept {
+    assert(data != nullptr);
+    assert(data[0] != '\0');
+
+    const size_t length = std::strlen(data);
+    if(length >= static_cast<std::size_t>(std::numeric_limits<unsigned>::max())) {
+        m_json.set(JSON::Error::TOO_LARGE);
+        return m_json;
     }
 
-    while(tokens.index + 4U < tokens.data.size()) {
-        if(token->type != TokenType::STRING) {
-            object.destroy();
-            m_type = Type::ERROR;
-            m_data.error = Error::OBJECT_INVALID_KEY;
-            return false;
+    return parse(data, static_cast<unsigned>(length));
+}
+
+JSON &Parser::parse(const char *const data, const unsigned length) noexcept {
+    assert(data != nullptr);
+    assert(length > 0);
+
+    if(m_arenas != nullptr) {
+        m_tokens.reset();
+    }
+
+    if(!m_tokens.reserve(length / 2U)) {
+        m_json.set(JSON::Error::MEMORY);
+        return m_json;
+    }
+    
+    Lexer lexer(data, length);
+    const Lexer::Error error = lexer.tokenize(m_tokens, m_counters);
+    if(error == Lexer::Error::TOKEN) {
+        m_json.set(JSON::Error::TOKEN);
+        return m_json;
+    }
+    if(error == Lexer::Error::MEMORY) {
+        m_json.set(JSON::Error::MEMORY);
+        return m_json;
+    }
+
+    if(m_arenas != nullptr) {
+        const std::array<unsigned, 3> arenaCounts = {
+            m_counters.object_elements,
+            m_counters.array_elements,
+            m_counters.chars          
+        };
+
+        if(!reserveArenas(arenaCounts)) {
+            m_json.set(JSON::Error::MEMORY);
+            return m_json;
         }
-
+    } else {
         bool success;
-        std::string key = parseUtf8String(*token, success);
+        const unsigned objectSizes = Util::safeMult(
+            m_counters.object_elements,
+            static_cast<unsigned>(sizeof(Object::ContainerType)),
+            success
+        );
         if(!success) {
-            object.destroy();
-            m_type = Type::ERROR;
-            m_data.error = Error::OBJECT_INVALID_KEY;
-            return false;
+            m_json.set(JSON::Error::TOO_LARGE);
+            return m_json;
         }
 
-        token++;
-    
-        if(token->type != TokenType::COLON) {
-            object.destroy();
-            m_type = Type::ERROR;
-            m_data.error = Error::OBJECT_MISSING_COLON;
-            tokens.index++;
-            return false;
+        const unsigned arraySizes = Util::safeMult(
+            m_counters.array_elements,
+            static_cast<unsigned>(sizeof(Array::ContainerType)),
+            success
+        );
+        if(!success) {
+            m_json.set(JSON::Error::TOO_LARGE);
+            return m_json;
         }
 
-        tokens.index += 2U;
-
-        JSON &json = object.m_nodes[std::move(key)]; 
-
-        if(!json.parseTokens(tokens)) {
-            const Error error = json.m_data.error;
-            object.destroy();
-            m_type = Type::ERROR;
-
-            if(error == Error::TOKEN_ERROR) {
-                m_data.error = Error::OBJECT_INVALID_VALUE;
-            } else {
-                m_data.error = error;
-            }
-            return false;
+        const unsigned stringSizes = Util::safeMult(
+            m_counters.chars,
+            static_cast<unsigned>(sizeof(String::ContainerType)),
+            success
+        );
+        if(!success) {
+            m_json.set(JSON::Error::TOO_LARGE);
+            return m_json;
         }
 
-        token = &tokens.data[tokens.index];
-
-        if(token->type == TokenType::COMMA) {
-            tokens.index++;
-            token++;
-            continue;
+        const std::array<unsigned, 3> arenaSizes = {objectSizes, arraySizes, stringSizes};
+        
+        if(!initArenas(arenaSizes, Arena::INFINITE_NODES)) {
+            m_json.set(JSON::Error::MEMORY);
+            return m_json;
         }
+    }
 
-        if(token->type == TokenType::RCURLY) {
-            tokens.index++;
-            return true;
-        }
+    parseToken(m_json, m_tokens);
+    return m_json;
+}
 
-        object.destroy();
-        m_type = Type::ERROR;
-        m_data.error = Error::ARRAY_MISSING_COMMA_OR_RBRACKET;
+JSON &Parser::parseFile(const std::string &path) noexcept {
+    assert(path[0] != '\0');
+
+    return parseFile(path.c_str());
+}
+
+JSON &Parser::parseFile(const char *const path) noexcept {
+    assert(path != nullptr);
+    assert(path[0] != '\0');
+
+    FileContents fileContents = FileContents::get(path);
+    if(fileContents.getError() != FileContents::Error::NONE) {
+        m_json.set(JSON::Error::FILE);
+        return m_json;
+    }
+
+    return parse(reinterpret_cast<const char*>(fileContents.getData()), fileContents.getLength());
+}
+
+const char *Parser::getError() noexcept {
+    switch(m_json.m_value.error) {
+    case JSON::Error::NONE:
+        return "No Error.";
+    case JSON::Error::TOKEN:
+        return "Token error.";
+    case JSON::Error::STRING:
+        return "String failed to parse.";
+    case JSON::Error::FLOAT64:
+        return "Float64 failed to parse.";
+    case JSON::Error::INT64:
+        return "Int64 failed to parse.";
+    case JSON::Error::UINT64:
+        return "Uint64 failed to parse.";
+    case JSON::Error::OBJECT:
+        return "Object failed to parse.";
+    case JSON::Error::OBJECT_KEY:
+        return "Object invalid key.";
+    case JSON::Error::OBJECT_VALUE:
+        return "Object invalid value.";
+    case JSON::Error::MISSING_COLON:
+        return "Object missing colon.";
+    case JSON::Error::MISSING_COMMA_OR_RCURLY:
+        return "Missing comma or right curly bracket.";
+    case JSON::Error::ARRAY:
+        return "Array failed to parse.";
+    case JSON::Error::ARRAY_VALUE:
+        return "Array invalid value.";
+    case JSON::Error::FILE:
+        return "Failed to open file.";
+    case JSON::Error::MEMORY:
+        return "Failed to allocate memory.";
+    case JSON::Error::TOO_LARGE:
+        return "File or string too large. Maximum supported is UINT_MAX.";
+    }
+
+    return nullptr;
+}
+
+void Parser::deallocateArenas(Arenas *const arenas) noexcept {
+    assert(arenas != nullptr);
+
+    arenas->object.~Arena();
+    arenas->array.~Arena();
+    arenas->string.~Arena();
+
+    Allocator::s_deallocate(arenas);
+}
+
+bool Parser::allocateArenas() noexcept {
+    try {
+        Arenas *const arenas = new (GeneralAllocator<Arenas>::s_allocate(1U)) Arenas();
+        new (&arenas->object) Arena();
+        new (&arenas->array) Arena();
+        new (&arenas->string) Arena();
+        m_arenas.reset(arenas);
+        return true;
+    } catch(...) {
         return false;
     }
-    
-    object.destroy();
-    m_type = Type::ERROR;
-    m_data.error = Error::OBJECT_FAILED_TO_PARSE;
-    return false; 
 }
 
-JSON &JSON::operator=(JSON &&other) {
-    if(this != &other) {
-        m_type = other.m_type;
-        other.m_type = Type::NULL_T;
-        m_data = std::move(other.m_data);
+bool Parser::initArenas(const std::array<unsigned, 3> arenaSizes, const unsigned maxNodes) noexcept {
+    assert(m_arenas == nullptr);
+
+    if(!allocateArenas()) {
+        return false;
     }
 
-    return *this;
-}
+    struct ArenaData {
+        const char    *name;
+        Arena         *arena;
+        const unsigned containerSize;
+    };
 
-Array &JSON::makeArray() {
-    destroy();
-    m_type = Type::ARRAY;
-    new (&m_data.array) Array();
+    const std::array<ArenaData, 3> arenaData = {{
+        {
+            "Object Arena",
+            &m_arenas->object,
+            static_cast<unsigned>(sizeof(Object::ContainerType))
+        },
+        {
+            "Array Arena",
+            &m_arenas->array,
+            static_cast<unsigned>(sizeof(Array::ContainerType))
+        },
+        {
+            "String Arena",
+            &m_arenas->string,
+            static_cast<unsigned>(sizeof(String::ContainerType))
+        }
+    }};
 
-    return m_data.array;
-}
+    int index = 0;
+    for(auto &arenaDatum : arenaData) {
+        assert(!Util::checkMultOverflow(Arena::MINIMUM_SIZE, arenaDatum.containerSize));
 
-Object &JSON::makeObject() {
-    destroy();
-    m_type = Type::OBJECT;
-    new (&m_data.object) Object();
-
-    return m_data.object;
-}
-
-std::string &JSON::makeString() {
-    destroy();
-    m_type = Type::STRING;
-    new (&m_data.string) std::string();
-
-    return m_data.string;
-}
-
-void JSON::set(const std::string &str) {
-    destroy();
-    m_type = Type::STRING;
-    new (&m_data.string) std::string(str);
-}
-
-void JSON::set(std::string &&str) {
-    destroy();
-    m_type = Type::STRING;
-    new (&m_data.string) std::string(std::move(str));
-}
-
-void JSON::set(const int64_t value) {
-    destroy();
-    m_type = Type::INT64;
-    m_data.int64 = value;
-}
-
-void JSON::set(const uint64_t value) {
-    destroy();
-    m_type = Type::UINT64;
-    m_data.uint64 = value;
-}
-
-void JSON::set(const double value) {
-    destroy();
-    m_type = Type::FLOAT64;
-    m_data.float64 = value;
-}
-
-void JSON::set(const bool value) {
-    destroy();
-    m_type = Type::BOOL;
-    m_data.boolean = value;
-}
-
-void JSON::set(std::nullptr_t null) {
-    destroy();
-    m_type = Type::NULL_T;
-    m_data.null = null;
-}
-
-void JSON::destroy() {
-    switch(m_type) {
-    case Type::OBJECT:
-        m_data.object.destroy(); break;
-    case Type::ARRAY:
-        m_data.array.destroy(); break;
-    case Type::STRING:
-        m_data.string.~basic_string(); break;
-    default:;
+        const unsigned arenaSize = std::max(arenaSizes[index], Arena::MINIMUM_SIZE * arenaDatum.containerSize);
+        if(!arenaDatum.arena->init(arenaSize, maxNodes, arenaDatum.name)) {
+            return false;
+        }
+        index++;
     }
 
-    m_type = Type::NULL_T;
-    m_data.null = nullptr;
+    return true;
 }
 
-Query JSON::operator[](const unsigned int index) {
-    Query query(this);
-    return query[index];
+bool Parser::reserveArenas(const std::array<unsigned, 3> arenaCounts) noexcept {
+    assert(m_arenas != nullptr);
+
+    if(!m_arenas->object.reserve<Object::ContainerType>(std::max(arenaCounts[0], Arena::MINIMUM_SIZE))) {
+        return false;
+    }
+    if(!m_arenas->array.reserve<Array::ContainerType>(std::max(arenaCounts[1], Arena::MINIMUM_SIZE))) {
+        return false;
+    }
+    if(!m_arenas->string.reserve<String::ContainerType>(std::max(arenaCounts[2], Arena::MINIMUM_SIZE))) {
+        return false;
+    }
+
+    return true;
 }
 
-Query JSON::operator[](const std::string &key) {
-    Query query(this);
-    return query[key];
+Object::Allocator Parser::getObjectAllocator() noexcept {
+    return Object::Allocator(&m_arenas->object);
 }
 
-bool JSON::parseTokens(Tokens &tokens) {
-    const Token &token = tokens.data[tokens.index]; 
-
-    switch(token.type) {
-    case TokenType::STRING: {
-        return parseString(tokens);
-    }
-    case TokenType::INT:
-    case TokenType::FLOAT:
-    case TokenType::SCIENTIFIC_INT: {
-        return parseNumber(tokens);
-    }
-    case TokenType::BOOL: {
-        parseBool(tokens);
-        return true;
-    }
-    case TokenType::NULL_T: {
-        parseNull(tokens);
-        return true;
-    }
-    case TokenType::LBRACKET: {
-        return parseArray(tokens);
-    }
-    case TokenType::LCURLY: {
-        return parseObject(tokens);
-    }
-    case TokenType::COLON:
-    case TokenType::COMMA:
-    case TokenType::RBRACKET:
-    case TokenType::RCURLY:
-    case TokenType::INVALID:
-        m_type = Type::ERROR;
-        m_data.error = Error::TOKEN_ERROR;
-    }
-
-    return false;
+Array::Allocator Parser::getArrayAllocator() noexcept {
+    return Array::Allocator(&m_arenas->array);
 }
 
-std::unique_ptr<JSON> JSON::parse(const std::string &data) {
-    if(data.size() == 0 || data.size() > UINT_MAX) {
-        return nullptr;
-    }
-
-    std::unique_ptr<JSON> root(new JSON());
-    Token *token;
-    Tokens tokens;
-    Lexer lexer(data);
-
-    do {
-        token = tokens.nextToken();
-    } while(lexer.tokenize(*token));
-
-    if(token->type == TokenType::INVALID) {
-        root->m_type = Type::ERROR;
-        root->m_data.error = Error::TOKEN_ERROR;
-        return root;
-    }
-
-    root->parseTokens(tokens);
-    return root;
-}
-
-std::unique_ptr<JSON> parse(const std::string &data) {
-    return JSON::parse(data);
+String::Allocator Parser::getStringAllocator() noexcept {
+    return String::Allocator(&m_arenas->string);
 }
 
 }

@@ -1,25 +1,37 @@
 #pragma once
 
 #include <string>
-#include "stringview.hpp"
+
 #include "token.hpp"
+#include "tokens.hpp"
+#include "allocator.hpp"
+#include "counters.hpp"
 
-namespace CJSON {
+namespace CPPJSON {
 
-class Lexer {
-    const std::string &m_data;
-    unsigned int m_position = 0;
+class Lexer {   
+    const char *const m_data     = nullptr;
+    const unsigned    m_length   = 0U;
+    unsigned          m_position = 0U;
 
-    void skipWhitespace();
-    bool readString(Token &token);
-    bool readNumber(Token &token);
-    bool nextTokenIsKeyword(const StringView keyword);
-    bool readKeyword(Token &token);
-    void readInvalidToken(Token &token);
+    void skipWhitespace          ()                               noexcept;
+    bool readString              (Token&)                         noexcept;
+    bool readNumber              (Token&)                         noexcept;
+    bool readKeyword             (Token&)                         noexcept;
+    void readInvalidToken        (Token&)                         noexcept;
+    bool countCountainersElements(Tokens &tokens, Counters &counters) noexcept;
 
 public:
-    Lexer(const std::string &data);
-    bool tokenize(Token &token);
+    enum class Error {
+        NONE,
+        TOKEN,
+        MEMORY,
+    };
+    
+    Lexer(const char *data, unsigned length) noexcept;
+    Lexer()                                  noexcept = delete;
+
+    Error tokenize(Tokens &tokens, Counters &counters) noexcept;
 };
 
 }

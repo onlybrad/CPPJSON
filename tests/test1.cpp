@@ -1,149 +1,212 @@
 #include <string>
-#include <assert.h>
-#include "../parser.hpp"
+#include <cassert>
+#include <cstdlib>
+#include <iostream>
+#include "../cppjson.hpp"
 
-static void test_empty_object() {
+using namespace CPPJSON;
+
+static bool success;
+
+static void testEmptyObject() {
     const std::string emptyObject = "{}";
-    auto root = CJSON::parse(emptyObject);
-    assert(root->type() == CJSON::Type::OBJECT);
+
+    Parser parser;
+    JSON &json = parser.parse(emptyObject);
+    assert(json.getError() == JSON::Error::NONE);
+    assert(json.getType() == JSON::Type::OBJECT);
 }
 
-static void test_empty_array() {
+static void testEmptyArray() {
     const std::string emptyArray = "[]";
-    auto root = CJSON::parse(emptyArray);
-    assert(root->type() == CJSON::Type::ARRAY);
+
+    Parser parser;
+    JSON &json = parser.parse(emptyArray);
+    assert(json.getError() == JSON::Error::NONE);
+    assert(json.getType() == JSON::Type::ARRAY);
 }
 
-static void test_primitive_values() {
+static void testPrimitiveValues() {
     const std::string string = "\"\"";
-    auto root = CJSON::parse(string);
-    assert(root->type() == CJSON::Type::STRING);
-    assert(root->value().string == "");
-    root->destroy();
+
+    Parser parser;
+    const JSON &json = parser.parse(string);
+    assert(json.getError() == JSON::Error::NONE);
+    assert(json.getType() == JSON::Type::STRING);
 
     const std::string int64 = "-125";
-    root = CJSON::parse(int64);
-    assert(root->type() == CJSON::Type::INT64);
-    assert(root->value().int64 == -125);
-    root->destroy();
+    const JSON &json2 = parser.parse(int64);
+    assert(json.getError() == JSON::Error::NONE);
+    assert(json2.getType() == JSON::Type::INT64);
+    assert(json2.asInt64() == -125);
+    assert(json2.asInt64(success) == -125);
+    assert(success);
 
     const std::string uint64 = "2500";
-    root = CJSON::parse(uint64);
-    assert(root->type() == CJSON::Type::UINT64);
-    assert(root->value().uint64 == 2500);
-    root->destroy();
+    const JSON &json3 = parser.parse(uint64);
+    assert(json.getError() == JSON::Error::NONE);
+    assert(json3.getType() == JSON::Type::UINT64);
+    assert(json3.asUint64() == 2500);
+    assert(json3.asUint64(success) == 2500);
+    assert(success);
 
     const std::string trueValue = "true";
-    root = CJSON::parse(trueValue);
-    assert(root->type() == CJSON::Type::BOOL);
-    assert(root->value().boolean);
-    root->destroy();
+    const JSON &json4 = parser.parse(trueValue);
+    assert(json.getError() == JSON::Error::NONE);
+    assert(json4.getType() == JSON::Type::BOOL);
+    assert(json4.asBool());
+    assert(json4.asBool(success));
+    assert(success);
 
     const std::string falseValue = "false";
-    root = CJSON::parse(falseValue);
-    assert(root->type() == CJSON::Type::BOOL);
-    assert(!root->value().boolean);
-    root->destroy(); 
-
-    const std::string nullValue = "null";
-    root = CJSON::parse(nullValue);
-    assert(root->type() == CJSON::Type::NULL_T);
-    assert(root->value().null == NULL);
-}
-
-static void test_key_value() {
-    const std::string keyValue = "{\"key\": \"value\"}";
-    auto root = CJSON::parse(keyValue);
-    assert(root->type() == CJSON::Type::OBJECT);
-
-    CJSON::JSON *const node = (*root)["key"].get();
-    assert(node != nullptr);
-    assert(node->value().string == "value");
-
-    bool success;
-    std::string *const value = (*root)["key"].getString(success);
+    const JSON &json5 = parser.parse(falseValue);
+    assert(json.getError() == JSON::Error::NONE);
+    assert(json5.getType() == JSON::Type::BOOL);
+    assert(!json5.asBool());
+    assert(!json5.asBool(success));
     assert(success);
-    assert(*value == "value");
 }
 
-static void test_nested_objects() {
+static void testKeyValue() {
+    const std::string keyValue = "{\"key\": \"value\"}";
+
+    Parser parser;
+    JSON &json = parser.parse(keyValue);
+    assert(json.getError() == JSON::Error::NONE);
+    assert(json.getType() == JSON::Type::OBJECT);
+
+    JSON *const json2 = json["key"].get();
+    assert(json2 != nullptr);
+    assert(json2->asString() != nullptr);
+    assert(json2->asString(success) != nullptr);
+    assert(success);
+    assert(*json2->asString() == "value");
+    assert(*json2->asString(success) == "value");
+    assert(success);
+
+    assert(json["key"].asString() != nullptr);
+    assert(json["key"].asString(success) != nullptr);
+    assert(success);
+}
+
+static void testNestedObjects() {
     const std::string nestedObjects = "{"
         "\"key1\": {\"innerKey\": \"innerValue\"},"
         "\"key2\": \"value\""
     "}";
 
-    auto root = CJSON::parse(nestedObjects);
-    assert(root->type() == CJSON::Type::OBJECT);
+    Parser parser;
+    JSON &json = parser.parse(nestedObjects);
+    assert(json.getError() == JSON::Error::NONE);
+    assert(json.getType() == JSON::Type::OBJECT);
     
-    CJSON::JSON *innerObject = (*root)["key1"].get();
+    JSON *const innerObject = json["key1"].get();
     assert(innerObject != nullptr);
-    assert(innerObject->type() == CJSON::Type::OBJECT);
-
-    bool success;
-    std::string *value = innerObject->value().object.getString("innerKey", success);
+    assert(innerObject->getType() == JSON::Type::OBJECT);
+    assert(innerObject->asObject() != nullptr);
+    assert(innerObject->asObject(success) != nullptr);
     assert(success);
+
+    const String *const value = innerObject->asObject()->getString("innerKey");
+    assert(value != nullptr);
     assert(*value == "innerValue");
 
-    CJSON::JSON *innerValue = (*root)["key1"]["innerKey"].get();
+    JSON *innerValue = json["key1"]["innerKey"].get();
     assert(innerValue != nullptr);
-    assert(innerValue->type() == CJSON::Type::STRING);
-    assert(innerValue->value().string == "innerValue");
+    assert(innerValue->getType() == JSON::Type::STRING);
+    assert(innerValue->asString() != nullptr);
+    assert(innerValue->asString(success) != nullptr);
+    assert(success);
+    assert(*innerValue->asString() == "innerValue");
+    assert(*innerValue->asString(success) == "innerValue");
+    assert(success);
 
-    innerValue = (*root)["key2"].get();
+    innerValue = json["key2"].get();
     assert(innerValue != nullptr);
-    assert(innerValue->type() == CJSON::Type::STRING);
-    assert(innerValue->value().string == "value");
+    assert(innerValue->getType() == JSON::Type::STRING);
+    assert(innerValue->asString() != nullptr);
+    assert(innerValue->asString(success) != nullptr);
+    assert(success);
+    assert(*innerValue->asString() == "value");
+    assert(*innerValue->asString(success) == "value");
+    assert(success);
 }
 
-static void test_object_array() {
+static void testObjectArray() {
     std::string objectArray = "["
         "{\"key1\": \"value1\"},"
         "{\"key2\": \"value2\"}"
     "]";
 
-    auto root = CJSON::parse(objectArray);
-    assert(root->type() == CJSON::Type::ARRAY);
-    assert(root->value().array.size() == 2U);
+    Parser parser;
+    JSON &json = parser.parse(objectArray);
+    assert(json.getError() == JSON::Error::NONE);
+    assert(json.getType() == JSON::Type::ARRAY);
+    assert(json.asArray() != nullptr);
+    assert(json.asArray(success) != nullptr);
+    assert(success);
+    assert(json.asArray()->size() == 2U);
+    assert(json.asArray(success)->size() == 2U);
+    assert(success);
 
-    CJSON::JSON *object = (*root)[0].get();
+    JSON *object = json[0U].get();
     assert(object != nullptr);
-    assert(object->type() == CJSON::Type::OBJECT);
+    assert(object->getType() == JSON::Type::OBJECT);
+    assert(object->asObject() != nullptr);
+    assert(object->asObject(success) != nullptr);
+    assert(success);
 
-    bool success;
-    std::string *value = object->value().object.getString("key1", success);
+    String *value = object->asObject()->getString("key1", success);
+    assert(value != nullptr);
     assert(success);
     assert(*value == "value1");
+    value = object->asObject()->getString("key1");
+    assert(value != nullptr);
+    assert(*value == "value1");
 
-    object = (*root)[1].get();
+    object = json[1].get();
     assert(object != nullptr);
-    assert(object->type() == CJSON::Type::OBJECT);
+    assert(object->getType() == JSON::Type::OBJECT);
 
-    value = object->value().object.getString("key2", success);
+    value = object->asObject()->getString("key2", success);
+    assert(value != nullptr);
     assert(success);
+    assert(*value == "value2");
+    value = object->asObject()->getString("key2");
+    assert(value != nullptr);
     assert(*value == "value2");
 }
 
-static void test_escaped_characters() {
+static void testEscapedCharacters() {
     const std::string escapedCharacters = "{\"key\": \"Line 1\\nLine 2\\\\\"}";
 
-    auto root = CJSON::parse(escapedCharacters);
-    assert(root->type() == CJSON::Type::OBJECT);
-    bool success;
+    Parser parser;
+    JSON &json = parser.parse(escapedCharacters);
+    assert(json.getError() == JSON::Error::NONE);
+    assert(json.getType() == JSON::Type::OBJECT);
 
-    std::string *value = (*root)["key"].getString(success);
+    String *value = json["key"].asString(success);
+    assert(value != nullptr);
     assert(success);
+    assert((*value)[6] == '\n');   
+    value = json["key"].asString();
+    assert(value != nullptr);
     assert((*value)[6] == '\n');   
 }
 
-static void test_escaped_unicode() {
+static void testEscapedUnicode() {
     const std::string escapedUnicode = "{\"key\": \"Unicode test: \\u00A9\\u03A9\\uD840\\uDC00\"}";
 
-    auto root = CJSON::parse(escapedUnicode);
-    assert(root->type() == CJSON::Type::OBJECT);
+    Parser parser;
+    JSON &json = parser.parse(escapedUnicode);
+    assert(json.getError() == JSON::Error::NONE);
+    assert(json.getType() == JSON::Type::OBJECT);
 
-    bool success;
-    std::string *const value = (*root)["key"].getString(success);
+    String *value = json["key"].asString(success);
+    assert(value != nullptr);
     assert(success);
+    value = json["key"].asString();
+    assert(value != nullptr);
 
     //\u00A9\u03A9 == ©Ω == (unsigned utf8) {194, 169, 206, 169} == (signed utf8) {-62, -87, -50, -87 }
     assert((*value)[14] == -62);
@@ -157,283 +220,391 @@ static void test_escaped_unicode() {
     assert((*value)[21] == -128);
 }
 
-static void test_bools() {
+static void testBools() {
     const std::string bools = "{\"isTrue\": true, \"isFalse\": false}";
 
-    auto root = CJSON::parse(bools);
-    assert(root->type() == CJSON::Type::OBJECT);
+    Parser parser;
+    JSON &json = parser.parse(bools);
+    assert(json.getError() == JSON::Error::NONE);
+    assert(json.getType() == JSON::Type::OBJECT);
 
-    CJSON::JSON *node = (*root)["isTrue"].get();
-    assert(node != nullptr);
-    assert(node->type() == CJSON::Type::BOOL);
-    assert(node->value().boolean);
+    JSON *boolean = json["isTrue"].get();
+    assert(boolean != nullptr);
+    assert(boolean->getType() == JSON::Type::BOOL);
+    assert(boolean->asBool());
+    assert(boolean->asBool(success));
+    assert(success);
 
-    node = (*root)["isFalse"].get();
-    assert(node != nullptr);
-    assert(node->type() == CJSON::Type::BOOL);
-    assert(!node->value().boolean);
+    boolean = json["isFalse"].get();
+    assert(boolean != nullptr);
+    assert(boolean->getType() == JSON::Type::BOOL);
+    assert(!boolean->asBool());
+    assert(!boolean->asBool(success));
+    assert(success);
 }
 
-static void test_exponent() {
+static void testExponent() {
     const std::string exponent = "{\"largeNumber\": 1e15, \"negativeLarge\": -1e15}";
 
-    auto root = CJSON::parse(exponent);
-    assert(root->type() == CJSON::Type::OBJECT);
+    Parser parser;
+    JSON &json = parser.parse(exponent);
+    assert(json.getError() == JSON::Error::NONE);
+    assert(json.getType() == JSON::Type::OBJECT);
 
-    bool success;
-    const uint64_t positive_number = (*root)["largeNumber"].getUint64(success);
+    uint64_t positive_number = json["largeNumber"].asUint64(success);
     assert(success);
     assert(positive_number == (uint64_t)1e15);
+    positive_number = json["largeNumber"].asUint64();
+    assert(positive_number == (uint64_t)1e15);
 
-    const int64_t negative_number = (*root)["negativeLarge"].getInt64(success);
+    int64_t negative_number = json["negativeLarge"].asInt64(success);
     assert(success);
+    assert(negative_number == (int64_t)-1e15);
+    negative_number = json["negativeLarge"].asInt64();
     assert(negative_number == (int64_t)-1e15);
 }
 
-static void test_null() {
+static void testNull() {
     const std::string nullValue = "{\"key\": null}";
 
-    auto root = CJSON::parse(nullValue);
-    assert(root->type() == CJSON::Type::OBJECT);
+    Parser parser;
+    JSON &json = parser.parse(nullValue);
+    assert(json.getError() == JSON::Error::NONE);
+    assert(json.getType() == JSON::Type::OBJECT);
 
-    CJSON::JSON *const node = (*root)["key"].get();
-    assert(node != nullptr);
-    assert(node->type() == CJSON::Type::NULL_T);
-    assert(node->value().null == nullptr);
-
-    bool success;
-    void *null = (*root)["key"].getNull(success);
+    JSON *const null = json["key"].get();
+    assert(null != nullptr);
+    assert(null->getType() == JSON::Type::NUL);
+    assert(null->asNull() == nullptr);
+    assert(null->asNull(success) == nullptr);
     assert(success);
-    assert(null == nullptr);
 }
 
-static void test_missing_value() {
+static void testMissingValue() {
     const std::string missingKey = "{\"key1\": \"value1\", \"key2\": }";
 
-    auto root = CJSON::parse(missingKey);
-    assert(root->type() == CJSON::Type::ERROR);
-    assert(root->value().error == CJSON::Error::OBJECT_FAILED_TO_PARSE);
+    Parser parser;
+    JSON &json = parser.parse(missingKey);
+    assert(json.getType() == JSON::Type::ERROR);
+    assert(json.getError() == JSON::Error::OBJECT);
 }
 
-static void test_comments() {
+static void testComments() {
     const std::string comments = "{"
         "// This is a comment"
         "\"key\": \"value\""
     "}";
 
-    auto root = CJSON::parse(comments);
-    assert(root->type() == CJSON::Type::ERROR);
-    assert(root->value().error == CJSON::Error::TOKEN_ERROR);
+    Parser parser;
+    JSON &json = parser.parse(comments);
+    assert(json.getType() == JSON::Type::ERROR);
+    assert(json.getError() == JSON::Error::TOKEN);
 }
 
-static void test_deep_nesting() {
-    const std::string deepNesting = "{\"key1\": {\"key2\": {\"key3\": {\"key4\": {\"key5\": \"value\"}}}}}";
+static void testDeepNesting() {
+    const std::string deepNesting = "{\"key1\": {\"key2\": {\"key3\": {\"key4\": {\"key5\": [0, 1, 2, 3, 4, \"value\"]}}}}}";
 
-    auto root = CJSON::parse(deepNesting);
-    assert(root->type() == CJSON::Type::OBJECT);
+    Parser parser;
+    JSON &json = parser.parse(deepNesting);
+    assert(json.getError() == JSON::Error::NONE);
+    assert(json.getType() == JSON::Type::OBJECT);
 
-    bool success;
-    std::string *const value = (*root)["key1"]["key2"]["key3"]["key4"]["key5"].getString(success);
+    String *value = json["key1"]["key2"]["key3"]["key4"]["key5"][5U].asString();
+    assert(value != nullptr);
+    assert(*value == "value");
+    value = json["key1"]["key2"]["key3"]["key4"]["key5"][5U].asString(success);
+    assert(value != nullptr);
     assert(success);
     assert(*value == "value");
 }
 
-static void test_no_quotes_key() {
+static void testNoQuotesKey() {
     const std::string noQuotesKey = "{ key: 1 }";
 
-    auto root = CJSON::parse(noQuotesKey);
-    assert(root->type() == CJSON::Type::ERROR);
-    assert(root->value().error == CJSON::Error::TOKEN_ERROR);
+    Parser parser;
+    JSON &json = parser.parse(noQuotesKey);
+    assert(json.getType() == JSON::Type::ERROR);
+    assert(json.getError() == JSON::Error::TOKEN);
 }
 
-static void test_nested_arrays() {
+static void testNestedArrays() {
     const std::string nestedArrays = "[[1, 2, [3, 4]], [5, 6]]";
 
-    auto root = CJSON::parse(nestedArrays);
-    assert(root->type() == CJSON::Type::ARRAY);
-    assert(root->value().array.size() == 2U);
+    Parser parser;
+    JSON &json = parser.parse(nestedArrays);
+    assert(json.getError() == JSON::Error::NONE);
+    assert(json.getType() == JSON::Type::ARRAY);
+    assert(json.asArray() != nullptr);
+    assert(json.asArray(success) != nullptr);
+    assert(success);
+    assert(json.asArray()->size() == 2U);
+    assert(json.asArray(success)->size() == 2U);
+    assert(success);
 
     //[1, 2, [3, 4]]
-    CJSON::JSON *level1_node = (*root)[0].get();
-    assert(level1_node != nullptr);
-    assert(level1_node->type() == CJSON::Type::ARRAY);
-    assert(level1_node->value().array.size() == 3U);
+    JSON *level1 = json[0U].get();
+    assert(level1 != nullptr);
+    assert(level1->getType() == JSON::Type::ARRAY);
+    assert(level1->asArray() != nullptr);
+    assert(level1->asArray(success) != nullptr);
+    assert(success);
+    assert(level1->asArray()->size() == 3U);
+    assert(level1->asArray(success)->size() == 3U);
+    assert(success);
 
     //1
-    CJSON::JSON *level2_node = (*level1_node)[0].get();
-    assert(level2_node != nullptr);
-    assert(level2_node->type() == CJSON::Type::UINT64);
-    assert(level2_node->value().uint64 == 1U);
+    JSON *level2 = (*level1)[0U].get();
+    assert(level2 != nullptr);
+    assert(level2->getType() == JSON::Type::UINT64);
+    assert(level2->asUint64() == 1U);
+    assert(level2->asUint64(success) == 1U);
+    assert(success);
+
     //2
-    level2_node = (*level1_node)[1].get();
-    assert(level2_node != nullptr);
-    assert(level2_node->type() == CJSON::Type::UINT64);
-    assert(level2_node->value().uint64 == 2U);
+    level2 = (*level1)[1].get();
+    assert(level2 != nullptr);
+    assert(level2->getType() == JSON::Type::UINT64);
+    assert(level2->asUint64() == 2U);
+    assert(level2->asUint64(success) == 2U);
+    assert(success);
+
     //[3, 4]
-    level2_node = (*level1_node)[2].get();
-    assert(level2_node != nullptr);
-    assert(level2_node->type() == CJSON::Type::ARRAY);
-    assert(level2_node->value().array.size() == 2U);
+    level2 = (*level1)[2].get();
+    assert(level2 != nullptr);
+    assert(level2->getType() == JSON::Type::ARRAY);
+    assert(level2->asArray() != nullptr);
+    assert(level2->asArray(success) != nullptr);
+    assert(success);
+    assert(level2->asArray()->size() == 2U);
+    assert(level2->asArray(success)->size() == 2U);
+    assert(success);
+
     //3
-    CJSON::JSON *level3_node = (*level2_node)[0].get();
-    assert(level3_node != nullptr);
-    assert(level3_node->type() == CJSON::Type::UINT64);
-    assert(level3_node->value().uint64 == 3U);
+    JSON *level3 = (*level2)[0U].get();
+    assert(level3 != nullptr);
+    assert(level3->getType() == JSON::Type::UINT64);
+    assert(level3->asUint64() == 3U);
+    assert(level3->asUint64(success) == 3U);
+    assert(success);
+
     //4
-    level3_node = (*level2_node)[1].get();
-    assert(level3_node != nullptr);
-    assert(level3_node->type() == CJSON::Type::UINT64);
-    assert(level3_node->value().uint64 == 4U);
+    level3 = (*level2)[1].get();
+    assert(level3 != nullptr);
+    assert(level3->getType() == JSON::Type::UINT64);
+    assert(level3->asUint64() == 4U);
+    assert(level3->asUint64(success) == 4U);
+    assert(success);
 
     //[5, 6]
-    level1_node = (*root)[1].get();
-    assert(level1_node != nullptr);
-    assert(level1_node->type() == CJSON::Type::ARRAY);
-    assert(level1_node->value().array.size() == 2U);
+    level1 = json[1].get();
+    assert(level1 != nullptr);
+    assert(level1->getType() == JSON::Type::ARRAY);
+    assert(level1->asArray() != nullptr);
+    assert(level1->asArray(success) != nullptr);
+    assert(success);
+    assert(level1->asArray()->size() == 2U);
+    assert(level1->asArray(success)->size() == 2U);
+    assert(success);
 
     //5
-    level2_node = (*level1_node)[0].get();
-    assert(level2_node != nullptr);
-    assert(level2_node->type() == CJSON::Type::UINT64);
-    assert(level2_node->value().uint64 == 5U);
+    level2 = (*level1)[0U].get();
+    assert(level2 != nullptr);
+    assert(level2->getType() == JSON::Type::UINT64);
+    assert(level2->asUint64() == 5U);
+    assert(level2->asUint64(success) == 5U);
+    assert(success);
+
     //6
-    level2_node = (*level1_node)[1].get();
-    assert(level2_node != nullptr);
-    assert(level2_node->type() == CJSON::Type::UINT64);
-    assert(level2_node->value().uint64 == 6U);
+    level2 = (*level1)[1].get();
+    assert(level2 != nullptr);
+    assert(level2->getType() == JSON::Type::UINT64);
+    assert(level2->asUint64() == 6U);
+    assert(level2->asUint64(success) == 6U);
+    assert(success);
 }
 
-static void test_duplicate_keys() {
+static void testDuplicateKeys() {
     const std::string duplicatedKeys = "{\"key\": \"value1\", \"key\": \"value2\"}";
 
-    auto root = CJSON::parse(duplicatedKeys);
-    assert(root->type() == CJSON::Type::OBJECT);
+    Parser parser;
+    JSON &json = parser.parse(duplicatedKeys);
+    assert(json.getError() == JSON::Error::NONE);
+    assert(json.getType() == JSON::Type::OBJECT);
 
-    bool success;
-    std::string *const value = (*root)["key"].getString(success);
+    String *value = json["key"].asString();
+    assert(value != nullptr);
+    assert(*value == "value2");
+    value = json["key"].asString(success);
+    assert(value != nullptr);
     assert(success);
     assert(*value == "value2");
 }
 
-static void test_create_string() {
+static void testCreateString() {
     std::string value = "test";
-    CJSON::JSON root;
-    root.set(std::move(value));
-    assert(root.type() == CJSON::Type::STRING);
-    assert(root.value().string == "test");
+
+    Parser parser;
+    JSON &json = parser.init();
+    assert(json.getError() == JSON::Error::NONE);
+
+    json.set(value, parser.getStringAllocator());
+    assert(json.getType() == JSON::Type::STRING);
+    assert(json.asString() != nullptr);
+    assert(json.asString(success) != nullptr);
+    assert(success);
+    assert(*json.asString() == "test");
+    assert(*json.asString(success) == "test");
+    assert(success);
 }
 
-static void test_create_primitives() {
+static void testCreatePrimitives() {
     const int64_t value1 = -25000000000LL;
-    CJSON::JSON root;
-    root.set(value1);
-    assert(root.type() == CJSON::Type::INT64);
-    assert(root.value().int64 == value1);
+
+    Parser parser;
+    JSON &json = parser.init();
+    assert(json.getError() == JSON::Error::NONE);
+
+    json.set(value1);
+    assert(json.getType() == JSON::Type::INT64);
+    assert(json.asInt64() == value1);
+    assert(json.asInt64(success) == value1);
+    assert(success);
 
     const uint64_t value2 = 25000000000ULL;
-    root.set(value2);
-    assert(root.type() == CJSON::Type::UINT64);
-    assert(root.value().uint64 == value2);
+    json.set(value2);
+    assert(json.getType() == JSON::Type::UINT64);
+    assert(json.asUint64() == value2);
+    assert(json.asUint64(success) == value2);
+    assert(success);
 
     const double value3 = 25000000000.50;
-    root.set(value3);
-    assert(root.type() == CJSON::Type::FLOAT64);
-    assert(root.value().float64 == value3);
+    json.set(value3);
+    assert(json.getType() == JSON::Type::FLOAT64);
+    assert(json.asFloat64() == value3);
+    assert(json.asFloat64(success) == value3);
+    assert(success);
 
     const bool value4 = true;
-    root.set(value4);
-    assert(root.type() == CJSON::Type::BOOL);
-    assert(root.value().boolean == value4);
+    json.set(value4);
+    assert(json.getType() == JSON::Type::BOOL);
+    assert(json.asBool() == value4);
+    assert(json.asBool(success) == value4);
+    assert(success);
 
-    root.set(nullptr);
-    assert(root.type() == CJSON::Type::NULL_T);
-    assert(root.value().null == nullptr);
+    json.set(nullptr);
+    assert(json.getType() == JSON::Type::NUL);
+    assert(json.asNull() == nullptr);
+    assert(json.asNull(success) == nullptr);
+    assert(success);
 }
 
-static void test_create_array() {
-    CJSON::JSON root;
-    CJSON::Array &array1 = root.makeArray();
-    assert(root.type() == CJSON::Type::ARRAY);
-    assert(&root.value().array == &array1);
+static void testCreateArray() {
+    Parser parser;
+    JSON &json = parser.init();
+    assert(json.getError() == JSON::Error::NONE);
+
+    Array *const array1 = json.makeArray(parser.getArrayAllocator());
+    assert(array1 != nullptr);
+    assert(json.getType() == JSON::Type::ARRAY);
+    assert(json.asArray() == array1);
+    assert(json.asArray(success) == array1);
+    assert(success);
 
     const uint64_t value1 = 5ULL;
     const bool value2 = true;
     const int64_t value3 = -25000000000LL;
 
-    CJSON::Array array2;
+    Array array2(parser.getArrayAllocator());
     array2.set(0, value1);
 
-    bool success;
-    assert(array2.get(0, success)->type() == CJSON::Type::UINT64);
+    assert(array2[0] != nullptr);
+    assert(array2[0]->getType() == JSON::Type::UINT64);
+    assert(array2.get(0)->asUint64() == value1);
+    assert(array2.get(0)->asUint64(success) == value1);
     assert(success);
-    assert(array2.get(0, success)->value().uint64 == value1);
 
-    array1.set(0, std::move(array2));
-    array1.set(1, value2);
-    array1.set(2, value3);
+    *(*array1)[0] = std::move(array2);
+    *(*array1)[1] = value2;
+    array1->set(2, value3);
 
-    assert(array1.get(0, success)->type() == CJSON::Type::ARRAY);
+    assert((*array1)[0] != nullptr);
+    assert((*array1)[0]->getType() == JSON::Type::ARRAY);
+    assert(array1->get(1) != nullptr);
+    assert((*array1)[1]->getType() == JSON::Type::BOOL);
+    assert((*array1)[1]->asBool() == value2);
+    assert((*array1)[1]->asBool(success) == value2);
     assert(success);
-    assert(array1.get(1, success)->type() == CJSON::Type::BOOL);
+    assert(array2[2] != nullptr);
+    assert(array1->get(2)->getType() == JSON::Type::INT64);   
+    assert((*array1)[2]->asInt64() == value3);
+    assert((*array1)[2]->asInt64(success) == value3);
     assert(success);
-    assert(array1.get(1, success)->value().boolean == value2);
-    assert(array1.get(2, success)->type() == CJSON::Type::INT64);   
-    assert(success);
-    assert(array1.get(2, success)->value().int64 == value3);
 }
 
-static void test_create_object() {
-    CJSON::JSON root;
-    CJSON::Object &object1 = root.makeObject();
-    assert(root.type() == CJSON::Type::OBJECT);
-    assert(&root.value().object == &object1);
+static void testCreateObject() {
+    Parser parser;
+    JSON &json = parser.init();
+    Object *const object1 = json.makeObject(parser.getObjectAllocator());
+    assert(object1 != nullptr);
+    assert(json.getType() == JSON::Type::OBJECT);
+    assert(json.asObject() == object1);
+    assert(json.asObject(success) == object1);
+    assert(success);
 
     const uint64_t value1 = 5ULL;
     const bool value2 = true;
     const int64_t value3 = -25000000000LL;
 
-    CJSON::Object object2;
+    Object object2(parser.getObjectAllocator());
     object2.set("key1", value1);
     assert(object2["key1"] != nullptr);
-    assert(object2["key1"]->type() == CJSON::Type::UINT64);
-    assert(object2["key1"]->value().uint64 == value1);
+    assert(object2["key1"]->getType() == JSON::Type::UINT64);
+    assert(object2["key1"]->asUint64() == value1);
+    assert(object2["key1"]->asUint64(success) == value1);
+    assert(success);
     
-    object1.set("key1", std::move(object2));
-    object1.set("key2", value2);
-    object1.set("key3", value3);
+    *(*object1)["key1"] = std::move(object2);
+    *(*object1)["key2"] = value2;
+    object1->set("key3", value3);
 
-    assert(object1["key1"] != nullptr);
-    assert(object1["key1"]->type() == CJSON::Type::OBJECT);
-    assert(object1["key2"] != nullptr);
-    assert(object1["key2"]->type() == CJSON::Type::BOOL);
-    assert(object1["key2"]->value().boolean == value2);
-    assert(object1["key3"] != nullptr);
-    assert(object1["key3"]->type() == CJSON::Type::INT64);
-    assert(object1["key3"]->value().int64 == value3);
+    assert((*object1)["key1"] != nullptr);
+    assert((*object1)["key1"]->getType() == JSON::Type::OBJECT);
+    assert((*object1)["key2"] != nullptr);
+    assert((*object1)["key2"]->getType() == JSON::Type::BOOL);
+    assert((*object1)["key2"]->asBool() == value2);
+    assert((*object1)["key2"]->asBool(success) == value2);
+    assert(success);
+    assert((*object1)["key3"] != nullptr);
+    assert((*object1)["key3"]->getType() == JSON::Type::INT64);
+    assert((*object1)["key3"]->asInt64() == value3);
+    assert((*object1)["key3"]->asInt64(success) == value3);
+    assert(success);
 }
 
 int main() {
-    test_empty_object();
-    test_empty_array();
-    test_primitive_values();
-    test_key_value();
-    test_nested_objects();
-    test_object_array();
-    test_escaped_characters();
-    test_escaped_unicode();
-    test_bools();
-    test_exponent();
-    test_null();
-    test_missing_value();
-    test_comments();
-    test_deep_nesting();
-    test_no_quotes_key();
-    test_nested_arrays();
-    test_duplicate_keys();
-    test_create_string();
-    test_create_primitives();
-    test_create_array();
-    test_create_object();
+    testEmptyObject();
+    testEmptyArray();
+    testPrimitiveValues();
+    testKeyValue();
+    testNestedObjects();
+    testObjectArray();
+    testEscapedCharacters();
+    testEscapedUnicode();
+    testBools();
+    testExponent();
+    testNull();
+    testMissingValue();
+    testComments();
+    testDeepNesting();
+    testNoQuotesKey();
+    testNestedArrays();
+    testDuplicateKeys();
+    testCreateString();
+    testCreatePrimitives();
+    testCreateArray();
+    testCreateObject();
 
-    return 0;
+    std::cout << "All tests successful\n";
+
+    return EXIT_SUCCESS;
 }

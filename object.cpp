@@ -1,284 +1,577 @@
-#include "parser.hpp"
+#include "object.hpp"
+#include "array.hpp"
+#include "string.hpp"
+#include "json.hpp"
+#include "util.hpp"
 
-#define DEFAULT_CAPACITY 1 << 3
+namespace CPPJSON {
 
-namespace CJSON {
+constexpr unsigned Object::MINIMUM_CAPACITY = 8U;
 
-Object &Object::operator=(Object &&other) {
-    if(&other != this) {
-        m_nodes = std::move(other.m_nodes);
-        other.destroy();
+Object::Object(const Allocator &allocator) :
+m_data(0, std::hash<KeyType>(), std::equal_to<KeyType>(), allocator)
+{}
+
+Object::Object(Allocator &&allocator) noexcept : 
+m_data(0, std::hash<KeyType>(), std::equal_to<KeyType>(), std::move(allocator))
+{}
+
+Object::~Object() noexcept {}
+
+Object &Object::operator=(const Object &object) {
+    m_data = object.m_data;
+
+    return *this;
+}
+
+Object &Object::operator=(Object &&object) noexcept {
+    if(this != &object) {
+        m_data = std::move(object.m_data);
     }
 
     return *this;
 }
 
-JSON *Object::operator[](const std::string &key) {
-    auto it = m_nodes.find(key);
+bool Object::reserve(unsigned capacity) noexcept {
+    if (capacity < Object::MINIMUM_CAPACITY) {
+        capacity = Object::MINIMUM_CAPACITY;
+    }
 
-    if(it == m_nodes.end()) {
+    try {
+        m_data.reserve(static_cast<std::size_t>(capacity));
+        return true;
+    }
+    catch (...) {
+        return false;
+    }
+}
+
+Object::ValueType *Object::get(const std::string &key) noexcept {
+    return get(key.c_str());
+}
+
+Object::ValueType *Object::get(const String &key) noexcept {
+    return get(key.getData());
+}
+
+Object::ValueType *Object::get(const char *const key) noexcept {
+    assert(key != nullptr);
+
+    if(m_data.count(key) == 0) {
         return nullptr;
     }
 
-    return &it->second;
+    return &m_data[key];
 }
 
-JSON *Object::get(const std::string &key, bool &success) {
-    JSON *const node = (*this)[key];
-
-    if(node == nullptr) {
-        success = false;
-        return nullptr;
-    }
-
-    success = true;
-    return node;
+void Object::remove(const std::string &key) noexcept {
+    return remove(key.c_str());
 }
 
-Array *Object::getArray(const std::string &key, bool &success) {
-    JSON *const node = (*this)[key];
-
-    if(node == nullptr || node->m_type != Type::ARRAY) {
-        success = false;
-        return nullptr;
-    }
-
-    success = true;
-    return &node->m_data.array;
+void Object::remove(const String &key) noexcept {
+    return remove(key.getData());
 }
 
-Object *Object::getObject(const std::string &key, bool &success) {
-    JSON *const node = (*this)[key];
+void Object::remove(const char *const key) noexcept {
+    assert(key != nullptr);
 
-    if(node == nullptr || node->m_type != Type::OBJECT) {
-        success = false;
-        return nullptr;
-    }
-
-    success = true;
-    return &node->m_data.object;
+    m_data.erase(key);
 }
 
-int64_t Object::getInt64(const std::string &key, bool &success) {
-    JSON *const node = (*this)[key];
-
-    if(node == nullptr || node->m_type != Type::INT64) {
-        success = false;
-        return 0;
-    }
-
-    success = true;
-    return node->m_data.int64;
+String *Object::getString(const std::string &key, bool &success) noexcept {
+    return getString(key.c_str(), success);
 }
 
-uint64_t Object::getUint64(const std::string &key, bool &success) {
-    JSON *const node = (*this)[key];
-
-    if(node == nullptr || node->m_type != Type::UINT64) {
-        success = false;
-        return 0U;
-    }
-
-    success = true;
-    return node->m_data.uint64;
+double Object::getFloat64(const std::string &key, bool &success) noexcept {
+    return getFloat64(key.c_str(), success);
 }
 
-double Object::getFloat64(const std::string &key, bool &success) {
-    JSON *const node = (*this)[key];
-
-    if(node == nullptr || node->m_type != Type::FLOAT64) {
-        success = false;
-        return 0.0;
-    }
-
-    success = true;
-    return node->m_data.float64;
+std::int64_t Object::getInt64(const std::string &key, bool &success) noexcept {
+    return getInt64(key.c_str(), success);
 }
 
-bool Object::getBool(const std::string &key, bool &success) {
-    JSON *const node = (*this)[key];
+std::uint64_t Object::getUint64(const std::string &key, bool &success) noexcept {
+    return getUint64(key.c_str(), success);
+}
 
-    if(node == nullptr || node->m_type != Type::BOOL) {
-        success = false;
+Object *Object::getObject(const std::string &key, bool &success) noexcept {
+    return getObject(key.c_str(), success);
+}
+
+Array *Object::getArray(const std::string &key, bool &success) noexcept {
+    return getArray(key.c_str(), success);
+}
+
+std::nullptr_t Object::getNull(const std::string &key, bool &success) noexcept {
+    return getNull(key.c_str(), success);
+}
+
+bool Object::getBool(const std::string &key, bool &success) noexcept {
+    return getBool(key.c_str(), success);
+}
+
+String *Object::getString(const String &key, bool &success) noexcept {
+    return getString(key.getData(), success);
+}
+
+double Object::getFloat64(const String &key, bool &success) noexcept {
+    return getFloat64(key.getData(), success);
+}
+
+std::int64_t Object::getInt64(const String &key, bool &success) noexcept {
+    return getInt64(key.getData(), success);
+}
+
+std::uint64_t Object::getUint64(const String &key, bool &success) noexcept {
+    return getUint64(key.getData(), success);
+}
+
+Object *Object::getObject(const String &key, bool &success) noexcept {
+    return getObject(key.getData(), success);
+}
+
+Array *Object::getArray(const String &key, bool &success) noexcept {
+    return getArray(key.getData(), success);
+}
+
+std::nullptr_t Object::getNull(const String &key, bool &success) noexcept {
+    return getNull(key.getData(), success);
+}
+
+bool Object::getBool(const String &key, bool &success) noexcept {
+    return getBool(key.getData(), success);
+}
+
+String *Object::getString(const char *const key, bool &success) noexcept {
+    assert(key != nullptr);
+
+    JSON *const json = (*this)[key];
+    return json->asString(success);
+}
+
+double Object::getFloat64(const char *const key, bool &success) noexcept {
+    assert(key != nullptr);
+
+    JSON *const json = (*this)[key];
+    return json->asFloat64(success);
+}
+
+std::int64_t Object::getInt64(const char *const key, bool &success) noexcept {
+    assert(key != nullptr);
+
+    JSON *const json = (*this)[key];
+    return json->asInt64(success);
+}
+
+std::uint64_t Object::getUint64(const char *const key, bool &success) noexcept {
+    assert(key != nullptr);
+
+    JSON *const json = (*this)[key];
+    return json->asUint64(success);
+}
+
+Object *Object::getObject(const char *const key, bool &success) noexcept {
+    assert(key != nullptr);
+
+    JSON *const json = (*this)[key];
+    return json->asObject(success);
+}
+
+Array *Object::getArray(const char *const key, bool &success) noexcept {
+    assert(key != nullptr);
+
+    JSON *const json = (*this)[key];
+    return json->asArray(success);
+}
+
+std::nullptr_t Object::getNull(const char *const key, bool &success) noexcept {
+    assert(key != nullptr);
+
+    JSON *const json = (*this)[key];
+    return json->asNull(success);
+}
+
+bool Object::getBool(const char *const key, bool &success) noexcept {
+    assert(key != nullptr);
+
+    JSON *const json = (*this)[key];
+    return json->asBool(success);
+}
+
+String *Object::getString(const std::string &key) noexcept {
+    bool success;
+    return getString(key, success);
+}
+
+double Object::getFloat64(const std::string &key) noexcept {
+    bool success;
+    return getFloat64(key, success);
+}
+
+std::int64_t Object::getInt64(const std::string &key) noexcept {
+    bool success;
+    return getInt64(key, success);
+}
+
+std::uint64_t Object::getUint64(const std::string &key) noexcept {
+    bool success;
+    return getUint64(key, success);
+}
+
+Object *Object::getObject(const std::string &key) noexcept {
+    bool success;
+    return getObject(key, success);
+}
+
+Array *Object::getArray(const std::string &key) noexcept {
+    bool success;
+    return getArray(key, success);
+}
+
+std::nullptr_t Object::getNull(const std::string &key) noexcept {
+    bool success;
+    return getNull(key, success);
+}
+
+bool Object::getBool(const std::string &key) noexcept {
+    bool success;
+    return getBool(key, success);
+}
+
+String *Object::getString(const String &key) noexcept {
+    bool success;
+    return getString(key, success);
+}
+
+double Object::getFloat64(const String &key) noexcept {
+    bool success;
+    return getFloat64(key, success);
+}
+
+std::int64_t Object::getInt64(const String &key) noexcept {
+    bool success;
+    return getInt64(key, success);
+}
+
+std::uint64_t Object::getUint64(const String &key) noexcept {
+    bool success;
+    return getUint64(key, success);
+}
+
+Object *Object::getObject(const String &key) noexcept {
+    bool success;
+    return getObject(key, success);
+}
+
+Array *Object::getArray(const String &key) noexcept {
+    bool success;
+    return getArray(key, success);
+}
+
+std::nullptr_t Object::getNull(const String &key) noexcept {
+    bool success;
+    return getNull(key, success);
+}
+
+bool Object::getBool(const String &key) noexcept {
+    bool success;
+    return getBool(key, success);
+}
+
+String *Object::getString(const char *const key) noexcept {
+    assert(key != nullptr);
+
+    bool success;
+    return getString(key, success);
+}
+
+double Object::getFloat64(const char *const key) noexcept {
+    assert(key != nullptr);
+
+    bool success;
+    return getFloat64(key, success);
+}
+
+std::int64_t Object::getInt64(const char *const key) noexcept {
+    assert(key != nullptr);
+
+    bool success;
+    return getInt64(key, success);
+}
+
+std::uint64_t Object::getUint64(const char *const key) noexcept {
+    assert(key != nullptr);
+
+    bool success;
+    return getUint64(key, success);
+}
+
+Object *Object::getObject(const char *const key) noexcept {
+    assert(key != nullptr);
+
+    bool success;
+    return getObject(key, success);
+}
+
+Array *Object::getArray(const char *const key) noexcept {
+    assert(key != nullptr);
+
+    bool success;
+    return getArray(key, success);
+}
+
+std::nullptr_t Object::getNull(const char *const key) noexcept {
+    assert(key != nullptr);
+
+    bool success;
+    return getNull(key, success);
+}
+
+bool Object::getBool(const char *const key) noexcept {
+    assert(key != nullptr);
+
+    bool success;
+    return getBool(key, success);
+}
+
+bool Object::set(const std::string &key, JSON &&value) noexcept {
+    return set(key.c_str(), std::move(value));
+}
+
+bool Object::set(const std::string &key, String &&value) noexcept {
+    return set(key.c_str(), std::move(value));
+}
+
+bool Object::set(const std::string &key, const double value) noexcept {
+    return set(key.c_str(), value);
+}
+
+bool Object::set(const std::string &key, const int64_t value) noexcept {
+    return set(key.c_str(), value);
+}
+
+bool Object::set(const std::string &key, const uint64_t value) noexcept {
+    return set(key.c_str(), value);
+}
+
+bool Object::set(const std::string &key, const int value) noexcept {
+    return set(key.c_str(), value);
+}
+
+bool Object::set(const std::string &key, const unsigned value) noexcept {
+    return set(key.c_str(), value);
+}
+
+bool Object::set(const std::string &key, Object &&value) noexcept {
+    return set(key.c_str(), std::move(value));
+}
+
+bool Object::set(const std::string &key, Array &&value) noexcept {
+    return set(key.c_str(), std::move(value));
+}
+
+bool Object::set(const std::string &key, const std::nullptr_t) noexcept {
+    return set(key.c_str());
+}
+
+bool Object::set(const std::string &key, const bool value) noexcept {
+    return set(key.c_str(), value);
+}
+
+bool Object::set(const String &key, JSON &&value) noexcept {
+    return set(key.getData(), std::move(value));
+}
+
+bool Object::set(const String &key, String &&value) noexcept {
+    return set(key.getData(), std::move(value));
+}
+
+bool Object::set(const String &key, const double value) noexcept {
+    return set(key.getData(), value);
+}
+
+bool Object::set(const String &key, const int64_t value) noexcept {
+    return set(key.getData(), value);
+}
+
+bool Object::set(const String &key, const uint64_t value) noexcept {
+    return set(key.getData(), value);
+}
+
+bool Object::set(const String &key, const int value) noexcept {
+    return set(key.getData(), value);
+}
+
+bool Object::set(const String &key, const unsigned value) noexcept {
+    return set(key.getData(), value);
+}
+
+bool Object::set(const String &key, Object &&value) noexcept {
+    return set(key.getData(), std::move(value));
+}
+
+bool Object::set(const String &key, Array &&value) noexcept {
+    return set(key.getData(), std::move(value));
+}
+
+bool Object::set(const String &key, const std::nullptr_t) noexcept {
+    return set(key.getData());
+}
+
+bool Object::set(const String &key, const bool value) noexcept {
+    return set(key.getData(), value);
+}
+
+bool Object::set(const char *const key, JSON &&value) noexcept {
+    assert(key != nullptr);
+
+    JSON *const json = (*this)[key];
+    if(json == nullptr) {
         return false;
     }
 
-    success = true;
-    return node->m_data.boolean;
+    *json = std::move(value);
+    return true;
 }
 
-std::string *Object::getString(const std::string &key, bool &success) {
-    JSON *const node = (*this)[key];
-
-    if(node == nullptr || node->m_type != Type::STRING) {
-        success = false;
-        return nullptr;
+bool Object::set(const char *const key, String &&value) noexcept {
+    assert(key != nullptr);
+    
+    JSON *const json = (*this)[key];
+    if(json == nullptr) {
+        return false;
     }
 
-    success = true;
-    return &node->m_data.string;
+    json->set(std::move(value));
+    return true;
 }
 
-std::nullptr_t Object::getNull(const std::string &key, bool &success) {
-    JSON *const node = (*this)[key];
+bool Object::set(const char *const key, const double value) noexcept {
+    assert(key != nullptr);
+    
+    JSON *const json = (*this)[key];
+    if(json == nullptr) {
+        return false;
+    }
 
-    success = !(node == nullptr || node->m_type != Type::NULL_T);
-    return nullptr;
+    json->set(value);
+    return true;
 }
 
-void Object::set(const std::string &key, JSON &&value) {
-    JSON *const node = &m_nodes[key];
-    node->destroy();
 
-    *node = std::move(value);
+
+bool Object::set(const char *const key, const int64_t value) noexcept {
+    assert(key != nullptr);
+    
+    JSON *const json = (*this)[key];
+    if(json == nullptr) {
+        return false;
+    }
+
+    json->set(value);
+    return true;
 }
 
-void Object::set(const std::string &key, Array &&value) {
-    JSON &node = m_nodes[key];
-    node.destroy();
+bool Object::set(const char *const key, const uint64_t value) noexcept {
+    assert(key != nullptr);
+    
+    JSON *const json = (*this)[key];
+    if(json == nullptr) {
+        return false;
+    }
 
-    node.m_type = Type::ARRAY;
-    node.m_data.array = std::move(value);
+    json->set(value);
+    return true;
 }
 
-void Object::set(const std::string &key, Object &&value) {
-    JSON &node = m_nodes[key];
-    node.destroy();
-
-    node.m_type = Type::OBJECT;
-    node.m_data.object = std::move(value);
+bool Object::set(const char *const key, const int value) noexcept {
+    return set(key, static_cast<std::int64_t>(value));
 }
 
-void Object::set(const std::string &key, const int64_t value) {
-    JSON &node = m_nodes[key];
-    node.destroy();
-
-    node.m_type = Type::INT64;
-    node.m_data.int64 = value;
+bool Object::set(const char *const key, const unsigned value) noexcept {
+    return set(key, static_cast<uint64_t>(value));
 }
 
-void Object::set(const std::string &key, const uint64_t value) {
-    JSON &node = m_nodes[key];
-    node.destroy();
+bool Object::set(const char *const key, Object &&value) noexcept {
+    assert(key != nullptr);
+    
+    JSON *const json = (*this)[key];
+    if(json == nullptr) {
+        return false;
+    }
 
-    node.m_type = Type::UINT64;
-    node.m_data.uint64 = value;
+    json->set(std::move(value));
+    return true;
 }
 
-void Object::set(const std::string &key, const double value) {
-    JSON &node = m_nodes[key];
-    node.destroy();
+bool Object::set(const char *const key, Array &&value) noexcept {
+    assert(key != nullptr);
+    
+    JSON *const json = (*this)[key];
+    if(json == nullptr) {
+        return false;
+    }
 
-    node.m_type = Type::FLOAT64;
-    node.m_data.float64 = value;
+    json->set(std::move(value));
+    return true;
 }
 
-void Object::set(const std::string &key, const bool value) {
-    JSON &node = m_nodes[key];
-    node.destroy();
+bool Object::set(const char *const key, std::nullptr_t) noexcept {
+    assert(key != nullptr);
+    
+    JSON *const json = (*this)[key];
+    if(json == nullptr) {
+        return false;
+    }
 
-    node.m_type = Type::BOOL;
-    node.m_data.boolean = value;
+    json->set();
+    return true;
 }
 
-void Object::set(const std::string &key, std::string &&value) {
-    JSON &node = m_nodes[key];
-    node.destroy();
+bool Object::set(const char *const key, const bool value) noexcept {
+    assert(key != nullptr);
+    
+    JSON *const json = (*this)[key];
+    if(json == nullptr) {
+        return false;
+    }
 
-    node.m_type = Type::STRING;
-    node.m_data.string = std::move(value);
+    json->set(value);
+    return true;
 }
 
-void Object::set(const std::string &key, std::nullptr_t null) {
-    JSON &node = m_nodes[key];
-    node.destroy();
-
-    node.m_type = Type::NULL_T;
-    node.m_data.null = null;
+Object::ValueType *Object::operator[](const std::string &key) noexcept {
+    return this->operator[](key.c_str());
 }
 
-void Object::set(std::string &&key, JSON &&value) {
-    JSON *const node = &m_nodes[std::move(key)];
-    node->destroy();
-
-    *node = std::move(value);
+Object::ValueType *Object::operator[](const String &key) noexcept { 
+    return this->operator[](key.getData());
 }
 
-void Object::set(std::string &&key, Array &&value) {
-    JSON &node = m_nodes[std::move(key)];
-    node.destroy();
-
-    node.m_type = Type::ARRAY;
-    node.m_data.array = std::move(value);
+Object::ValueType *Object::operator[](String &&key) noexcept { 
+    return this->operator[](std::move(key.getContainer()));
 }
 
-void Object::set(std::string &&key, Object &&value) {
-    JSON &node = m_nodes[std::move(key)];
-    node.destroy();
-
-    node.m_type = Type::OBJECT;
-    node.m_data.object = std::move(value);
+Object::ValueType *Object::operator[](String::Container &&key) noexcept {
+    try {
+        return &m_data.operator[](std::move(key));
+    } catch(...) {
+        return nullptr;
+    }
 }
 
-void Object::set(std::string &&key, const int64_t value) {
-    JSON &node = m_nodes[std::move(key)];
-    node.destroy();
+Object::ValueType *Object::operator[](const char *const key) noexcept {
+    assert(key != nullptr);
 
-    node.m_type = Type::INT64;
-    node.m_data.int64 = value;
+    try {
+        return &m_data.operator[](key);
+    } catch(...) {
+        return nullptr;
+    }
 }
 
-void Object::set(std::string &&key, const uint64_t value) {
-    JSON &node = m_nodes[std::move(key)];
-    node.destroy();
-
-    node.m_type = Type::UINT64;
-    node.m_data.uint64 = value;
-}
-
-void Object::set(std::string &&key, const double value) {
-    JSON &node = m_nodes[std::move(key)];
-    node.destroy();
-
-    node.m_type = Type::FLOAT64;
-    node.m_data.float64 = value;
-}
-
-void Object::set(std::string &&key, const bool value) {
-    JSON &node = m_nodes[std::move(key)];
-    node.destroy();
-
-    node.m_type = Type::BOOL;
-    node.m_data.boolean = value;
-}
-
-void Object::set(std::string &&key, std::string &&value) {
-    JSON &node = m_nodes[std::move(key)];
-    node.destroy();
-
-    node.m_type = Type::STRING;
-    node.m_data.string = std::move(value);
-}
-
-void Object::set(std::string &&key, std::nullptr_t null) {
-    JSON &node = m_nodes[std::move(key)];
-    node.destroy();
-
-    node.m_type = Type::NULL_T;
-    node.m_data.null = null;
-}
-
-void Object::destroy() {
-    m_nodes.~unordered_map();
-}
-
-Object::Object() {
-    m_nodes.reserve(DEFAULT_CAPACITY);
-}
-
-Object::Object(Object &&other) {
-    m_nodes = std::move(other.m_nodes);
-    other.destroy();
+Object::Allocator Object::getAllocator() const noexcept { 
+    return m_data.get_allocator();
 }
 
 }

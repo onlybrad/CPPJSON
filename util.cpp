@@ -1,17 +1,23 @@
+#if defined(__MINGW32__) || !defined(_WIN32)
+    #include <sys/time.h>
+#endif
 #ifdef _WIN32
     #include <windows.h>
-#else
-    #include <sys/time.h>   
 #endif
-#include <cstring>
-#include <cstdlib>
-#include <cerrno>
+
+#include <cassert>
 #include <cstdio>
+#include <cerrno>
+#include <cstring>
+
 #include "util.hpp"
+#include "allocator.hpp"
 
-namespace CJSON {
+namespace CPPJSON {
 
-bool isWhitespace(const char c) {
+namespace Util {
+
+bool isWhitespace(const char c) noexcept {
     switch(c) {
     case ' ':
     case '\t':
@@ -23,7 +29,7 @@ bool isWhitespace(const char c) {
     }
 }
 
-bool isDelimiter(const char c) {
+bool isDelimiter(const char c) noexcept {
     switch(c) {
     case '[':
     case ']':
@@ -37,7 +43,7 @@ bool isDelimiter(const char c) {
     }
 }
 
-bool isDigit(const char c) {
+bool isDigit(const char c) noexcept {
     switch(c) {
     case '0':
     case '1':
@@ -55,50 +61,74 @@ bool isDigit(const char c) {
     }
 }
 
-uint16_t parseCodepoint(const char *const codepoint, bool &success) {
+std::uint16_t hexToUtf16(const char *const codepoint, bool &success) noexcept {
+    assert(codepoint != nullptr);
+
     char hex[7] = "0x";
-    std::memcpy(hex + 2, codepoint, 4);
-    char *end_ptr;
+    std::memcpy(hex + 2, codepoint, 4U);
+    char *endPtr;
     errno = 0;
 
-    const uint16_t ret = (uint16_t)std::strtoul(hex, &end_ptr, 16);
-    if(end_ptr == hex || *end_ptr != '\0' || errno == ERANGE) {
+    const std::uint16_t ret = static_cast<std::uint16_t>(std::strtoul(hex, &endPtr, 16));
+    if(endPtr == hex || *endPtr != '\0' || errno == ERANGE) {
         success = false;
-        return (uint16_t)0;
+        return static_cast<std::uint16_t>(0U);
     }
 
     success = true;
     return ret;
 }
 
-void utf16ToUtf8(std::string& destination, const uint16_t codepoint) {
-    if(codepoint <= 0x7F) {
-        destination.push_back((char)(codepoint & 0x7f));
-    } else if(codepoint <= 0x7FF) {
-        destination.push_back((char)((codepoint  >> 6)         | 0xC0));
-        destination.push_back((char)(((codepoint >> 0) & 0x3F) | 0x80));
+char *utf16ToUtf8(char *const destination, const std::uint16_t high) noexcept {
+    assert(destination != nullptr);
+
+    if(high <= 0x7F) {
+        destination[0] = static_cast<char>((high & 0x7f));
+        destination[1] = '\0';
+    } else if(high <= 0x7FF) {
+        destination[0] = static_cast<char>(((high  >> 6)         | 0xC0));
+        destination[1] = static_cast<char>((((high >> 0) & 0x3F) | 0x80));
+        destination[2] = '\0';
     } else {
-        destination.push_back((char)((codepoint  >> 12)        | 0xE0));
-        destination.push_back((char)(((codepoint >> 6) & 0x3F) | 0x80));
-        destination.push_back((char)(((codepoint >> 0) & 0x3F) | 0x80));
+        destination[0] = static_cast<char>(((high  >> 12)        | 0xE0));
+        destination[1] = static_cast<char>((((high >> 6) & 0x3F) | 0x80));
+        destination[2] = static_cast<char>((((high >> 0) & 0x3F) | 0x80));
+        destination[3] = '\0';
     }
+
+    return destination;
 }
 
-void utf16ToUtf8(std::string& destination, const uint16_t high, const uint16_t low) {
-    const uint32_t codepoint = (uint32_t)(((high - 0xD800) << 10) | (low - 0xDC00)) + 0x10000;
-
-    destination.push_back((char)((codepoint  >> 18)         | 0xF0));
-    destination.push_back((char)(((codepoint >> 12) & 0x3F) | 0x80));
-    destination.push_back((char)(((codepoint >> 6)  & 0x3F) | 0x80));
-    destination.push_back((char)(((codepoint >> 0)  & 0x3F) | 0x80));
+bool isValidUtf16(const std::uint16_t high) noexcept {
+    return high < 0xD7FF || high >= 0xE000;
 }
 
-double parseFloat64(const std::string& str, bool &success) {
-    char *end_ptr;
+bool isValidUtf16(const std::uint16_t high, const std::uint16_t low) noexcept {
+    return high >= 0xD800 && high <= 0xDBFF && low >= 0xDC00 && low <= 0xDFFF;
+}
+
+char *utf16ToUtf8(char *const destination, const std::uint16_t high, const std::uint16_t low) noexcept {
+    assert(destination != nullptr);
+
+    const std::uint32_t codepoint = static_cast<std::uint32_t>((((high - 0xD800) << 10) | (low - 0xDC00)) + 0x10000);
+
+    destination[0] = static_cast<char>(((codepoint  >> 18)         | 0xF0));
+    destination[1] = static_cast<char>((((codepoint >> 12) & 0x3F) | 0x80));
+    destination[2] = static_cast<char>((((codepoint >> 6)  & 0x3F) | 0x80));
+    destination[3] = static_cast<char>((((codepoint >> 0)  & 0x3F) | 0x80));
+    destination[4] = '\0';
+
+    return destination;
+}
+
+double parseFloat64(const char *const str, bool &success) noexcept {
+    assert(str != nullptr);
+    
+    char *endPtr;
     errno = 0;
     
-    const double ret = std::strtod(str.c_str(), &end_ptr);
-    if(end_ptr == str.c_str() || *end_ptr != '\0' || errno == ERANGE) {
+    const double ret = std::strtod(str, &endPtr);
+    if(endPtr == str || *endPtr != '\0' || errno == ERANGE) {
         success = false;
         return 0.0;
     }
@@ -107,12 +137,14 @@ double parseFloat64(const std::string& str, bool &success) {
     return ret;
 }
 
-long double parseLongDouble(const std::string& str, bool &success) {
-    char *end_ptr;
+long double parseLongDouble(const char *const str, bool &success) noexcept {
+    assert(str != nullptr);
+    
+    char *endPtr;
     errno = 0;
     
-    const long double ret = std::strtold(str.c_str(), &end_ptr);
-    if(end_ptr == str.c_str() || *end_ptr != '\0' || errno == ERANGE) {
+    const long double ret = std::strtold(str, &endPtr);
+    if(endPtr == str || *endPtr != '\0' || errno == ERANGE) {
         success = false;
         return 0.0L;
     }
@@ -121,90 +153,70 @@ long double parseLongDouble(const std::string& str, bool &success) {
     return ret;
 }
 
-uint64_t parseUint64(const std::string& str, bool &success) {
-    char *end_ptr;
+std::uint64_t parseUint64(const char *const str, bool &success) noexcept {
+    assert(str != nullptr);
+    
+    char *endPtr;
     errno = 0;
 
-    const uint64_t ret = std::strtoull(str.c_str(), &end_ptr, 10);
-    if(end_ptr == str.c_str() || *end_ptr != '\0' || errno == ERANGE) {
+    const uint64_t ret = std::strtoull(str, &endPtr, 10);
+    if(endPtr == str || *endPtr != '\0' || errno == ERANGE) {
         success = false;
-        return (uint64_t)0;
+        return 0;
     }
 
     success = true;
     return ret;
 }
 
-int64_t parseInt64(const std::string& str, bool &success) {
-    char *end_ptr;
+std::int64_t parseInt64(const char *const str, bool &success) noexcept {
+    assert(str != nullptr);
+    
+    char *endPtr;
     errno = 0;
     
-    const int64_t ret = strtoll(str.c_str(), &end_ptr, 10);
-    if(end_ptr == str.c_str() || *end_ptr != '\0' || errno == ERANGE) {
+    const std::int64_t ret = std::strtoll(str, &endPtr, 10);
+    if(endPtr == str || *endPtr != '\0' || errno == ERANGE) {
         success = false;
-        return (int64_t)0;
+        return 0;
     }
 
     success = true;
     return ret;
 }
 
-void printBytes(const void *const buffer, const size_t size) {
+void printBytes(const void *const buffer, const size_t size) noexcept {
+    assert(buffer != nullptr);
+    assert(size > 0);
+
+    const unsigned char *bytes = static_cast<const unsigned char*>(buffer);
+
     std::putchar('[');
-    for(size_t i = 0; i < size - 1; i++) {
-        std::printf("0x%02hhx, ", ((const unsigned char*)buffer)[i]);
+    for(std::size_t i = 0; i < size - 1; i++) {
+        std::printf("0x%02hhx, ", bytes[i]);
     }
-    std::printf("0x%02hhx]\n", ((const unsigned char*)buffer)[size - 1]);
+    std::printf("0x%02hhx]\n", bytes[size - 1]);
 }
 
-std::unique_ptr<char[]> file_get_contents(const std::string& path, size_t &filesize) {
-#ifdef _WIN32
-    const int wide_length = MultiByteToWideChar(CP_UTF8, 0, path.c_str(), -1, nullptr, 0);
-    if(wide_length == 0) {
-        filesize = 0;
-        return nullptr;
-    }
-
-    std::unique_ptr<wchar_t[]> wpath(new wchar_t[wide_length]);
-
-    MultiByteToWideChar(CP_UTF8, 0, path.c_str(), -1, wpath.get(), wide_length);
-    FILE *const file = _wfopen(wpath.get(), L"rb");
-#else
-    FILE *const file = fopen(path, "rb");
-#endif
-    if(file == nullptr) {
-        filesize = 0;
-        return nullptr;
-    }
-
-    fseeko(file, 0, SEEK_END);
-    const off_t length = ftello(file);
-    fseeko(file, 0, SEEK_SET);
-    //the buffer returned has 1 extra byte allocated in case a null terminated string is required
-    char *data = new char[length + 1];
-    fread(data, sizeof(char), (size_t)length, file);
-    fclose(file);
-
-    filesize = (size_t)length;
-    return std::unique_ptr<char[]>(data);
-}
-
-long usec_timestamp() {
-#ifdef _WIN32
-    FILETIME ft;
-    GetSystemTimeAsFileTime(&ft);
-    unsigned long long tt = ft.dwHighDateTime;
-    tt <<= 32ULL;
-    tt |= ft.dwLowDateTime;
-    tt /= 10ULL;
-    tt -= 11644473600000000ULL;
-    return (long)tt;
-#else
+std::uint64_t usecTimestamp() noexcept {
+#if defined(__MINGW32__) || !defined(_WIN32)
     struct timeval current_time;
     gettimeofday(&current_time, nullptr);
-
-    return current_time.tv_sec * 1000000L + current_time.tv_usec;
+    return static_cast<std::uint64_t>(current_time.tv_sec * 1000000L + current_time.tv_usec);
+#elif defined(_WIN32)
+    FILETIME ft;
+    GetSystemTimeAsFileTime(&ft);
+    std::uint64_t tt = static_cast<std::uint64_t>(ft.dwHighDateTime);
+    tt <<= 32ULL;
+    tt |= static_cast<std::uint64_t>(ft.dwLowDateTime);
+    tt /= 10ULL;
+    tt -= 11644473600000000ULL;
+    return tt;
+#else
+    #error "Unknown platform. Missing implementation for usec_timestamp."
 #endif
+}
+
 }
 
 }

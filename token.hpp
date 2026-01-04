@@ -1,41 +1,32 @@
 #pragma once
 
-#include <vector>
-#include "stringview.hpp"
+#include <stdio.h>
 
-namespace CJSON {
+namespace CPPJSON {
 
-enum class TokenType {
-    LCURLY,
-    RCURLY,
-    LBRACKET,
-    RBRACKET,
-    COLON,
-    COMMA,
-    STRING,
-    INT,
-    FLOAT,
-    SCIENTIFIC_INT,
-    BOOL,
-    NULL_T,
-    INVALID
-};
+struct Tokens;
 
 struct Token {
-    TokenType type;
-    StringView value;
+    enum class Type {
+        LCURLY,
+        RCURLY,
+        LBRACKET,
+        RBRACKET,
+        COLON,
+        COMMA,
+        STRING,
+        INT,
+        FLOAT,
+        SCIENTIFIC_INT,
+        BOOL,
+        NUL,
+        INVALID,
+        DONE
+    };
 
-    Token();
-    Token(Token &&other);
-    ~Token();
-};
-
-struct Tokens {
-    std::vector<Token> data;
-    unsigned int index = 0;
-
-    Tokens();
-    Token *nextToken();
+    const char *value;
+    unsigned    length;
+    Type        type;
 };
 
 }

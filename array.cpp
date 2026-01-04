@@ -1,287 +1,341 @@
-#include "parser.hpp"
+#include <stdlib.h>
+#include <stdbool.h>
+#include <assert.h>
+#include <string.h>
 
-#define DEFAULT_CAPACITY 1 << 3
+#include "array.hpp"
+#include "object.hpp"
+#include "string.hpp"
+#include "json.hpp"
+#include "util.hpp"
 
-namespace CJSON {
+namespace CPPJSON {
 
-JSON *Array::operator[](const unsigned int index) {
-    if(index >= m_nodes.size()) {
-        return nullptr;
-    }
-    return &m_nodes[index];
+constexpr unsigned Array::MINIMUM_CAPACITY = 8U;
+
+Array::Array(const Allocator &allocator) :
+m_data(0, allocator)
+{}
+
+Array::Array(Allocator &&allocator) noexcept :
+m_data(0, std::move(allocator))
+{}
+
+Array::~Array() noexcept {}
+
+Array &Array::operator=(const Array &array) {
+    m_data = array.m_data;
+
+    return *this;
 }
 
-Array &Array::operator=(Array &&other) {
-    if(&other != this) {
-        m_nodes = std::move(other.m_nodes);
-        other.destroy();
+Array &Array::operator=(Array &&array) noexcept {
+    if(this != &array) {
+        m_data = std::move(array.m_data);
     }
 
     return *this;
-}  
-
-JSON *Array::get(const unsigned int index, bool &success) {
-    if(index >= m_nodes.size()) {
-        success = false;
-        return nullptr;
-    }
-    success = true;
-    return &m_nodes[index];
 }
 
-Array *Array::getArray(const unsigned int index, bool &success) {
-    if(index >= m_nodes.size() || m_nodes[index].m_type != Type::ARRAY) {
-        success = false;
-        return nullptr;
+bool Array::reserve(unsigned capacity) noexcept {
+    if(capacity < Array::MINIMUM_CAPACITY) {
+        capacity = Array::MINIMUM_CAPACITY;
     }
-    success = true;
-    return &m_nodes[index].m_data.array;
-}
 
-Object *Array::getObject(const unsigned int index, bool &success) {
-    if(index >= m_nodes.size() || m_nodes[index].m_type != Type::OBJECT) {
-        success = false;
-        return nullptr;
-    }
-    success = true;
-    return &m_nodes[index].m_data.object;
-}
-
-int64_t Array::getInt64(const unsigned int index, bool &success) {
-    if(index >= m_nodes.size() || m_nodes[index].m_type != Type::INT64) {
-        success = false;
-        return 0;
-    }
-    success = true;
-    return m_nodes[index].m_data.int64;
-}
-
-uint64_t Array::getUint64(const unsigned int index, bool &success) {
-    if(index >= m_nodes.size() || m_nodes[index].m_type != Type::UINT64) {
-        success = false;
-        return 0U;
-    }
-    success = true;
-    return m_nodes[index].m_data.uint64;
-}
-
-double Array::getFloat64(const unsigned int index, bool &success) {
-    if(index >= m_nodes.size() || m_nodes[index].m_type != Type::FLOAT64) {
-        success = false;
-        return 0.0;
-    }
-    success = true;
-    return m_nodes[index].m_data.float64;
-}
-
-bool Array::getBool(const unsigned int index, bool &success) {
-    if(index >= m_nodes.size() || m_nodes[index].m_type != Type::BOOL) {
-        success = false;
+    try {
+        m_data.reserve(static_cast<std::size_t>(capacity));
+    } catch (...) {
         return false;
     }
-    success = true;
-    return m_nodes[index].m_data.boolean;
+
+    return true;
 }
 
-std::string *Array::getString(const unsigned int index, bool &success) {
-    if(index >= m_nodes.size() || m_nodes[index].m_type != Type::STRING) {
-        success = false;
+JSON *Array::get(const unsigned index) noexcept {
+    if(index >= m_data.size()) {
+        try {
+            m_data.resize(index + 1);
+        } catch(...) {
+            return nullptr;
+        }
+    }
+
+    return &m_data[index];
+}
+
+const JSON *Array::get(const unsigned index) const noexcept {
+    if(index >= m_data.size()) {
         return nullptr;
     }
-    success = true;
-    return &m_nodes[index].m_data.string;
+
+    return &m_data[index];  
 }
 
-std::nullptr_t Array::getNull(const unsigned int index, bool &success) {
-    success = !(index >= m_nodes.size() || m_nodes[index].m_type != Type::NULL_T);
-    return nullptr;
+String *Array::getString(const unsigned index, bool &success) noexcept {
+    JSON *const json = get(index);
+    return json->asString(success);
 }
 
-void Array::set(const unsigned int index, JSON &&value) {
-    if(value.m_type == Type::ARRAY && &value.m_data.array == this) {
-        return;
+double Array::getFloat64(const unsigned index, bool &success) noexcept {
+    JSON *const json = get(index);
+    return json->asFloat64(success);
+}
+
+std::int64_t Array::getInt64(const unsigned index, bool &success) noexcept {
+    JSON *const json = get(index);
+    return json->asInt64(success);
+}
+
+std::uint64_t Array::getUint64(const unsigned index, bool &success) noexcept {
+    JSON *const json = get(index);
+    return json->asUint64(success);
+}
+
+Object *Array::getObject(const unsigned index, bool &success) noexcept {
+    JSON *const json = get(index);
+    return json->asObject(success);
+}
+
+Array *Array::getArray(const unsigned index, bool &success) noexcept {
+    JSON *const json = get(index);
+    return json->asArray(success);
+}
+
+std::nullptr_t Array::getNull(const unsigned index, bool &success) noexcept {
+    JSON *const json = get(index);
+    return json->asNull(success);
+}
+
+bool Array::getBool(const unsigned index, bool &success) noexcept {
+    JSON *const json = get(index);
+    return json->asBool(success);
+}
+
+bool Array::set(const unsigned index, String &&value) noexcept {
+    JSON *const json = get(index);
+    if(json == nullptr) {
+        return false;
     }
 
-    if(index >= m_nodes.size()) {
-        m_nodes.resize(index + 1U);
+    json->set(std::move(value));
+    return true;
+}
+
+bool Array::set(const unsigned index, const double value) noexcept {
+    JSON *const json = get(index);
+    if(json == nullptr) {
+        return false;
     }
 
-    m_nodes[index].destroy();
-    m_nodes[index] = std::move(value);
+    json->set(value);
+    return true;
 }
 
-void Array::set(const unsigned int index, Array &&value) {
-    if(&value == this) {
-        return;
+bool Array::set(const unsigned index, const int64_t value) noexcept {
+    JSON *const json = get(index);
+    if(json == nullptr) {
+        return false;
     }
 
-    if(index >= m_nodes.size()) {
-        m_nodes.resize(index + 1U);
+    json->set(value);
+    return true;
+}
+
+bool Array::set(const unsigned index, const uint64_t value) noexcept {
+    JSON *const json = get(index);
+    if(json == nullptr) {
+        return false;
     }
 
-    m_nodes[index].destroy();
-    m_nodes[index].m_type = Type::ARRAY;
-    m_nodes[index].m_data.array = std::move(value);
+    json->set(value);
+    return true;
 }
 
-void Array::set(const unsigned int index, Object &&value) {
-    if(index >= m_nodes.size()) {
-        m_nodes.resize(index + 1U);
+bool Array::set(const unsigned index, const int value) noexcept { 
+    return set(index, static_cast<std::int64_t>(value));
+}
+
+bool Array::set(const unsigned index, const unsigned value) noexcept { 
+    return set(index, static_cast<uint64_t>(value));
+}
+
+bool Array::set(const unsigned index, Object &&value) noexcept {
+    JSON *const json = get(index);
+    if(json == nullptr) {
+        return false;
     }
-    m_nodes[index].destroy();
-    m_nodes[index].m_type = Type::OBJECT;
-    m_nodes[index].m_data.object = std::move(value);
+
+    json->set(std::move(value));
+    return true;
 }
 
-void Array::set(const unsigned int index, const int64_t value) {
-    if(index >= m_nodes.size()) {
-        m_nodes.resize(index + 1U);
+bool Array::set(const unsigned index, Array &&value) noexcept {
+    JSON *const json = get(index);
+    if(json == nullptr) {
+        return false;
     }
-    m_nodes[index].destroy();
-    m_nodes[index].m_type = Type::INT64;
-    m_nodes[index].m_data.int64 = value;
+
+    json->set(std::move(value));
+    return true;
 }
 
-void Array::set(const unsigned int index, const uint64_t value) {
-    if(index >= m_nodes.size()) {
-        m_nodes.resize(index + 1U);
+bool Array::set(const unsigned index, std::nullptr_t) noexcept {
+    JSON *const json = get(index);
+    if(json == nullptr) {
+        return false;
     }
-    m_nodes[index].destroy();
-    m_nodes[index].m_type = Type::UINT64;
-    m_nodes[index].m_data.uint64 = value;
+
+    json->set();
+    return true;
 }
 
-void Array::set(const unsigned int index, const double value) {
-    if(index >= m_nodes.size()) {
-        m_nodes.resize(index + 1U);
+bool Array::set(const unsigned index, const bool value) noexcept {
+    JSON *const json = get(index);
+    if(json == nullptr) {
+        return false;
     }
-    m_nodes[index].destroy();
-    m_nodes[index].m_type = Type::FLOAT64;
-    m_nodes[index].m_data.float64 = value; 
+
+    json->set(value);
+    return true;
 }
 
-void Array::set(const unsigned int index, const bool value) {
-    if(index >= m_nodes.size()) {
-        m_nodes.resize(index + 1U);
+bool Array::push(String &&value) noexcept {
+    try {
+        m_data.emplace_back();
+        JSON &json = m_data.back();
+        json.set(std::move(value));
+        return true;
+    } catch(...) {
+        return false;
     }
-    m_nodes[index].destroy();
-    m_nodes[index].m_type = Type::BOOL;
-    m_nodes[index].m_data.boolean = value; 
 }
 
-void Array::set(const unsigned int index, std::string &&value) {
-    if(index >= m_nodes.size()) {
-        m_nodes.resize(index + 1U);
+bool Array::push(const double value) noexcept {
+    try {
+        m_data.emplace_back();
+        JSON &json = m_data.back();
+        json.set(value);
+        return true;
+    } catch(...) {
+        return false;
     }
-    m_nodes[index].destroy();
-    m_nodes[index].m_type = Type::STRING;
-    m_nodes[index].m_data.string = std::move(value); 
 }
 
-void Array::set(const unsigned int index, std::nullptr_t null) {
-    if(index >= m_nodes.size()) {
-        m_nodes.resize(index + 1U);
+bool Array::push(const int64_t value) noexcept {
+    try {
+        m_data.emplace_back();
+        JSON &json = m_data.back();
+        json.set(value);
+        return true;
+    } catch(...) {
+        return false;
     }
-    m_nodes[index].destroy();
-    m_nodes[index].m_type = Type::NULL_T;
-    m_nodes[index].m_data.null = null;
 }
 
-void Array::push_back(Array &&value) {
-    if(this == &value || m_nodes.size() == (size_t)UINT_MAX) {
-        return;
+bool Array::push(const uint64_t value) noexcept {
+    try {
+        m_data.emplace_back();
+        JSON &json = m_data.back();
+        json.set(value);
+        return true;
+    } catch(...) {
+        return false;
     }
-    m_nodes.emplace_back();
-    JSON &node = m_nodes.back();
-    node.m_type = Type::ARRAY;
-    node.m_data.array = std::move(value);
 }
 
-void Array::push_back(Object &&value) {
-    if(m_nodes.size() == (size_t)UINT_MAX) {
-        return;
+bool Array::push(const int value) noexcept {
+    return push(static_cast<std::int64_t>(value));
+}
+
+bool Array::push(const unsigned value) noexcept {
+    return push(static_cast<std::uint64_t>(value));
+}
+
+bool Array::push(Object &&value) noexcept {
+    try {
+        m_data.emplace_back();
+        JSON &json = m_data.back();
+        json.set(std::move(value));
+        return true;
+    } catch(...) {
+        return false;
     }
-    m_nodes.emplace_back();
-    JSON &node = m_nodes.back();
-    node.m_type = Type::OBJECT;
-    node.m_data.object = std::move(value);
 }
 
-void Array::push_back(const int64_t value) {
-    if(m_nodes.size() == (size_t)UINT_MAX) {
-        return;
+bool Array::push(Array &&value) noexcept {
+    try {
+        m_data.emplace_back();
+        JSON &json = m_data.back();
+        json.set(std::move(value));
+        return true;
+    } catch(...) {
+        return false;
     }
-    m_nodes.emplace_back();
-    JSON &node = m_nodes.back();
-    node.m_type = Type::INT64;
-    node.m_data.int64 = value;
 }
 
-void Array::push_back(const uint64_t value) {
-    if(m_nodes.size() == (size_t)UINT_MAX) {
-        return;
+bool Array::push(const std::nullptr_t) noexcept {
+    try {
+        m_data.emplace_back();
+        JSON &json = m_data.back();
+        json.set();
+        return true;
+    } catch(...) {
+        return false;
     }
-    m_nodes.emplace_back();
-    JSON &node = m_nodes.back();
-    node.m_type = Type::UINT64;
-    node.m_data.uint64 = value;
 }
 
-void Array::push_back(const double value) {
-    if(m_nodes.size() == (size_t)UINT_MAX) {
-        return;
+bool Array::push(const bool value) noexcept {
+    try {
+        m_data.emplace_back();
+        JSON &json = m_data.back();
+        json.set(value);
+        return true;
+    } catch(...) {
+        return false;
     }
-    m_nodes.emplace_back();
-    JSON &node = m_nodes.back();
-    node.m_type = Type::FLOAT64;
-    node.m_data.float64 = value;
 }
 
-void Array::push_back(const bool value) {
-    if(m_nodes.size() == (size_t)UINT_MAX) {
-        return;
+Array::ValueType *Array::back() noexcept {
+    if(m_data.size() == 0) {
+        return nullptr;
     }
-    m_nodes.emplace_back();
-    JSON &node = m_nodes.back();
-    node.m_type = Type::BOOL;
-    node.m_data.boolean = value;
+    return &m_data.back();
 }
 
-void Array::push_back(std::string &&value) {
-    if(m_nodes.size() == (size_t)UINT_MAX) {
-        return;
-    }
-    m_nodes.emplace_back();
-    JSON &node = m_nodes.back();
-    node.m_type = Type::STRING;
-    node.m_data.string = std::move(value);
+Array::ValueType &Array::unsafeBack() noexcept {
+    return m_data.back();
 }
 
-void Array::push_back(std::nullptr_t null) {
-    if(m_nodes.size() == (size_t)UINT_MAX) {
-        return;
-    }
-    m_nodes.emplace_back();
-    JSON &node = m_nodes.back();
-    node.m_type = Type::NULL_T;
-    node.m_data.null = null;
+unsigned Array::size() const noexcept {
+    return static_cast<unsigned>(m_data.size());
 }
 
-unsigned int Array::size() {
-    return (unsigned int)m_nodes.size();
+Array::ValueType *Array::operator[](const unsigned index) noexcept {
+    return get(index);
 }
 
-void Array::destroy() {
-    m_nodes.~vector();
+const Array::ValueType *Array::operator[](const unsigned index) const noexcept {
+    return get(index);
 }
 
-Array::Array() {
-    m_nodes.reserve(DEFAULT_CAPACITY);
+Array::Allocator Array::getAllocator() const noexcept { 
+    return m_data.get_allocator();
 }
 
-Array::Array(Array &&other) {
-    m_nodes = std::move(other.m_nodes);
-    other.destroy();
+Array::iterator Array::begin() noexcept {
+    return m_data.data();
+}
+
+Array::const_iterator Array::begin() const noexcept {
+    return m_data.data();
+}
+
+Array::iterator Array::end() noexcept {
+    return m_data.data() + m_data.size();
+}
+
+Array::const_iterator Array::end() const noexcept {
+    return m_data.data() + m_data.size();
 }
 
 }

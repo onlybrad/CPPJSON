@@ -1,25 +1,193 @@
+#include <cassert>
 #include <cstring>
-#include <iostream>
+#include <algorithm>
+#include <stack>
+#include <vector>
+
 #include "lexer.hpp"
+#include "token.hpp"
 #include "util.hpp"
-#include "parser.hpp"
+#include "array.hpp"
+#include "object.hpp"
+#include "counters.hpp"
 
-namespace CJSON {
+namespace CPPJSON {
 
-Lexer::Lexer(const std::string &data): m_data(data) {}
+bool Lexer::countCountainersElements(Tokens &tokens, Counters &counters) noexcept {
+    typedef GeneralAllocator<Token*>       Allocator;
+    typedef std::vector<Token*, Allocator> Vector;
+    typedef std::stack<Token*, Vector>     Stack;
 
-void Lexer::skipWhitespace() {
-    while(m_position < m_data.size() && isWhitespace(m_data[m_position])) {
+    Vector vector(0, Allocator());
+    try {
+        vector.reserve(counters.object + counters.array);
+    } catch(...) {
+        return false;
+    }
+
+    Stack stack(std::move(vector));
+
+    for(Token &token : tokens.data) {
+        switch(token.type) {
+        case Token::Type::LCURLY:
+        case Token::Type::LBRACKET: {
+            stack.push(&token);
+            continue;
+        }
+
+        case Token::Type::RCURLY:
+        case Token::Type::RBRACKET: {
+            if(stack.empty()) {
+                return false;
+            }
+
+            Token *const container = stack.top();
+            assert(container != nullptr);
+            assert(container->type == Token::Type::LCURLY || container->type == Token::Type::LBRACKET);
+            stack.pop();
+
+            if(container->type == Token::Type::LCURLY) {
+                counters.object_elements += std::max(container->length, Object::MINIMUM_CAPACITY);
+            } else {
+                counters.array_elements += std::max(container->length, Array::MINIMUM_CAPACITY);
+            }
+
+            continue;
+        }
+
+        case Token::Type::COMMA: {
+            if(stack.empty()) {
+                return false;
+            }
+
+            Token *const container = stack.top();
+            assert(container != nullptr);
+            assert(container->type == Token::Type::LCURLY || container->type == Token::Type::LBRACKET);
+
+            container->length++;
+
+            continue;
+        }
+
+        default:
+            continue;
+        }
+    }
+
+    return true;
+}
+
+Lexer::Lexer(const char *const data, const unsigned length) noexcept :
+    m_data(data),
+    m_length(length)
+{}
+
+void Lexer::skipWhitespace() noexcept {
+    while(m_position < m_length && Util::isWhitespace(m_data[m_position])
+    ) {
         m_position++;
     }
 }
 
-bool Lexer::readString(Token &token) {
-    bool escaping = false;
-    unsigned int position = m_position + 1U;
+Lexer::Error Lexer::tokenize(Tokens &tokens, Counters &counters) noexcept {
+    while(m_position < m_length) {
+        skipWhitespace();
 
-    unsigned int i;
-    for(i = 0U; position + i < m_data.size(); i++) {
+        Token *const token = tokens.nextToken();
+        if(token == nullptr) {
+            return Error::MEMORY;
+        }
+
+        token->value = m_data + m_position;
+        switch(*token->value) {
+        case '{':
+            token->length = 1U;
+            token->type   = Token::Type::LCURLY;
+            break;
+        case '}':
+            token->length = 1U;
+            token->type   = Token::Type::RCURLY;
+            counters.object++;
+            break;
+        case '[':
+            token->length = 1U;
+            token->type   = Token::Type::LBRACKET;
+            break;
+        case ']':
+            token->length = 1U;
+            token->type   = Token::Type::RBRACKET;
+            counters.array++;
+            break;
+        case ':':
+            token->length = 1U;
+            token->type   = Token::Type::COLON;
+            break;
+        case ',': {
+            token->length = 1U;
+            token->type   = Token::Type::COMMA;
+            counters.comma++;
+            break;
+        }
+        case '"': {
+            if(!readString(*token)) {
+                return Error::TOKEN;
+            }
+            assert(token->length >= 2U);
+            counters.string++;
+            counters.chars += token->length - 1U;
+            break;
+        }
+        case '-':
+        case '0':
+        case '1':
+        case '2':
+        case '3':
+        case '4':
+        case '5':
+        case '6':
+        case '7':
+        case '8':
+        case '9': {
+            if(!readNumber(*token)) {
+                 return Error::TOKEN;
+            }
+            assert(token->length >= 1U);
+            counters.number++;
+            break;
+        }
+        default: {
+            if(!readKeyword(*token)) {
+                readInvalidToken(*token);
+                return Error::TOKEN;
+            }
+            assert(token->length >= 4U);
+            counters.keyword++;
+            break;
+        }
+
+        }
+        
+        m_position += token->length;
+    }
+
+    Token *const token = tokens.nextToken();
+    if(token == nullptr) {
+        return Error::MEMORY;
+    }
+
+    token->type         = Token::Type::DONE;
+    token->length       = 0U;
+    tokens.currentToken = tokens.data.data();
+
+    return countCountainersElements(tokens, counters) ? Error::NONE : Error::MEMORY;
+}
+
+bool Lexer::readString(Token &token) noexcept {
+    const unsigned position = m_position + 1U;
+    bool escaping = false;
+    
+    unsigned i;
+    for(i = 0U; position + i < m_length; i++) {
         const char c = m_data[position + i];
         
         if(c == '\\' && !escaping) {
@@ -27,79 +195,78 @@ bool Lexer::readString(Token &token) {
         } else if(escaping) {
             escaping = false;
         } else if(c == '"') {
-            token.type = TokenType::STRING;
-            token.value.size = i + 2U;
+            token.type   = Token::Type::STRING;
+            token.length = i + 2U;
             return true;
         }
     }
-
-    token.type = TokenType::INVALID;
-    token.value.size = i + 1U;
+    
+    token.type = Token::Type::INVALID;
+    token.length = i + 1U;
     return false;
 }
 
-bool Lexer::readNumber(Token &token) {
-    unsigned int position, i, size;
-    size = (unsigned int)m_data.size(); 
-    const char *data = m_data.c_str();
-    bool success = true;
-    bool read_dot = false;
-    bool read_e = false;
+bool Lexer::readNumber(Token &token) noexcept {
+    const char *data   = m_data;
+    unsigned    length = m_length;
+
+    unsigned position, i;
+    bool success   = true;
+    bool read_dot  = false;
+    bool read_e    = false;
     bool read_sign = false;
 
-    if(data[m_position] == '-') {
-        position = m_position + 1U;
-        token.value.size = 1U;
+    if(m_data[m_position] == '-') {
+        position     = m_position + 1U;
+        token.length = 1U;
     } else {
-        position = m_position;
-        token.value.size = 0U;
+        position     = m_position;
+        token.length = 0U;
     }
 
-    data += position;
-    size -= position;
-    token.type = TokenType::INT;
+    data       += position;
+    length     -= position;
+    token.type  = Token::Type::INT;
 
     //0 as the first character is only allowed if it's followed by a dot or by an non-digit character
-    if(data[0] == '0' && size > 1U && data[1] != '.' && isDigit(data[1])) {
-        success = false;
-        token.type = TokenType::INVALID;
+    if(data[0] == '0' && length > 1U && data[1] != '.' && Util::isDigit(data[1])) {
+        success    = false;
+        token.type = Token::Type::INVALID;
 
-        for(i = 0U; i < size; i++) {
+        for(i = 0U; i < length; i++) {
             const char c = data[i];
-
-            if(isWhitespace(c) || isDelimiter(c)) {
+            if(Util::isWhitespace(c) || Util::isDelimiter(c)) {
                 break;
             }
         }
     } 
     
-    else for(i = 0U; i < size; i++) {
+    else for(i = 0U; i < length; i++) {
         const char c = data[i];
-
-        if(isWhitespace(c) || isDelimiter(c)) {
+        if(Util::isWhitespace(c) || Util::isDelimiter(c)) {
             break;
         }
         
         switch(c) {
         case '.': {
-            token.type = TokenType::FLOAT;
+            token.type = Token::Type::FLOAT;
             if(!read_dot) {
                 read_dot = true;
             } else {
-                token.type = TokenType::INVALID;
-                success = false;
+                token.type = Token::Type::INVALID;
+                success    = false;
             }
             break;
         }
 
-        case 'e':
         case 'E': {
+            case 'e':
             if(!read_e) {
-                read_e = true;
-                token.type = TokenType::SCIENTIFIC_INT;
+                read_e     = true;
+                token.type = Token::Type::SCIENTIFIC_INT;
             } else {
-                token.type = TokenType::INVALID;
-                success = false;
+                token.type = Token::Type::INVALID;
+                success    = false;
             }
             break;
         }
@@ -109,8 +276,8 @@ bool Lexer::readNumber(Token &token) {
             if(read_e && !read_sign) {
                 read_sign = true;
             } else {
-                token.type = TokenType::INVALID;
-                success = false;                
+                token.type = Token::Type::INVALID;
+                success    = false;                
             }
             break;
         }
@@ -128,144 +295,66 @@ bool Lexer::readNumber(Token &token) {
             continue;
 
         default: {
-            token.type = TokenType::INVALID;
-            success = false;
+            token.type = Token::Type::INVALID;
+            success    = false;
         }
         }
     }
 
-    token.value.size += i;
+    token.length += i;
 
     return success;
 }
 
-bool Lexer::nextTokenIsKeyword(const StringView keyword) {
-    if(m_position + keyword.size - 1U < m_data.size() 
-    && std::strncmp(m_data.c_str() + m_position, keyword.data, keyword.size) == 0
-    ){
-        if(m_position + keyword.size >= m_data.size()) {
+bool Lexer::readKeyword(Token &token) noexcept {   
+    static const struct {
+        std::string value;
+        Token::Type type;
+    } keywords[] = {
+        { "null" , Token::Type::NUL},
+        { "true" , Token::Type::BOOL},
+        { "false", Token::Type::BOOL}
+    };
+
+    for(const auto &keyword : keywords) {
+        if(m_position + static_cast<unsigned>(keyword.value.size()) - 1U >= m_length) {
+            continue;
+        }
+
+        if(std::strncmp(m_data + m_position, keyword.value.c_str(), keyword.value.size()) != 0) {
+            continue;
+        }
+        
+        if(static_cast<size_t>(m_position) + keyword.value.size() >= m_length) {
+            token.type   = keyword.type;
+            token.length = static_cast<unsigned>(keyword.value.size());
             return true;
         }
 
-        const char next_char = m_data[m_position + keyword.size];
-
-        return isWhitespace(next_char) || isDelimiter(next_char);
+        const char nextChar = m_data[m_position + keyword.value.size()];
+        if(Util::isWhitespace(nextChar) || Util::isDelimiter(nextChar)) {
+            token.type   = keyword.type;
+            token.length = static_cast<unsigned>(keyword.value.size());
+            return true;
+        }
+        
     }
 
     return false;
 }
 
-static const StringView null_string(STATIC_STRING("null"));
-static const StringView true_string(STATIC_STRING("true"));
-static const StringView false_string(STATIC_STRING("false"));
-bool Lexer::readKeyword(Token &token) {
-    if(nextTokenIsKeyword(null_string)) {
-        token.type = TokenType::NULL_T;
-        token.value.size = null_string.size;
-        return true;
-    }
-    
-    if(nextTokenIsKeyword(true_string)) {
-        token.type = TokenType::BOOL;
-        token.value.size = true_string.size;
-        return true;
-    }
-    
-    if(nextTokenIsKeyword(false_string)) {
-        token.type = TokenType::BOOL;
-        token.value.size = false_string.size;
-        return true;
-    }
-
-    return false;
-}
-
-void Lexer::readInvalidToken(Token &token) {
-    const unsigned int length = (unsigned int)m_data.size();
-
-    unsigned int i;
-    for(i = m_position; i < length; i++) {
-        if(isWhitespace(m_data[i]) || isDelimiter(m_data[i])) {
+void Lexer::readInvalidToken(Token &token) noexcept {
+    unsigned i;
+    for(i = m_position; i < m_length; i++) {
+        const char c = m_data[i];
+        if(Util::isWhitespace(c) || Util::isDelimiter(c)) {
             i++;
             break;
         };
     }
     
-    token.type = TokenType::INVALID;
-    token.value.size = i - m_position - 1U;
-}
-
-bool Lexer::tokenize(Token &token) {
-    skipWhitespace();
-
-    if(m_position == m_data.size()) {
-        token.type = TokenType::NULL_T;
-        token.value.data = nullptr;
-        token.value.size = 0U;
-        return false;
-    }
-
-    token.value.data = m_data.c_str() + m_position;
-
-    switch(*token.value) {
-    case '{':
-        token.value.size = 1U;
-        token.type = TokenType::LCURLY;
-        break;
-    case '}':
-        token.value.size = 1U;
-        token.type = TokenType::RCURLY;
-        break;
-    case '[':
-        token.value.size = 1U;
-        token.type = TokenType::LBRACKET;
-        break;
-    case ']':
-        token.value.size = 1U;
-        token.type = TokenType::RBRACKET;
-        break;
-    case ':':
-        token.value.size = 1U;
-        token.type = TokenType::COLON;
-        break;
-    case ',':
-        token.value.size = 1U;
-        token.type = TokenType::COMMA;
-        break;
-    case '"': {
-        if(!readString(token)) {
-            return false;
-        }
-        break;
-    }
-    case '-':
-    case '0':
-    case '1':
-    case '2':
-    case '3':
-    case '4':
-    case '5':
-    case '6':
-    case '7':
-    case '8':
-    case '9': {
-        if(!readNumber(token)) {
-            return false;
-        }
-        break;
-    }
-    default: {
-        if(!readKeyword(token)) {
-            readInvalidToken(token);
-            return false;
-        }
-        break;
-    }    
-    }
-
-    m_position += token.value.size;
-    
-    return true;
+    token.type   = Token::Type::INVALID;
+    token.length = i - m_position - 1U;
 }
 
 }

@@ -1,16 +1,33 @@
 #include <iostream>
-#include "../parser.hpp"
+#include <cstdlib>
+#include "../cppjson.hpp"
 #include "../util.hpp"
+#include "../file.hpp"
+#include "../memory.hpp"
+
+using namespace CPPJSON;
 
 int main() {
-    size_t filesize;
-    auto data = CJSON::file_get_contents("tests\\really-big-json-file.json", filesize);
+{
+    const FileContents fileContents = FileContents::get("tests\\really-big-json-file.json");
+    if(fileContents.getError() != FileContents::Error::NONE) {
+        return EXIT_FAILURE;
+    }
     
-    const long start = CJSON::usec_timestamp();
-    auto json = CJSON::parse(data.get());
-    const long end = CJSON::usec_timestamp();
+    const std::uint64_t start = Util::usecTimestamp();
+    Parser parser;
+    parser.parse(reinterpret_cast<const char*>(fileContents.getData()), fileContents.getLength());
+    const std::uint64_t end = Util::usecTimestamp();
 
-    std::cout << "Execution time: " << end - start << "\n";
+    std::cout << "Execution time: " << end - start << '\n';
+}
+
+#ifndef NDEBUG
+    const AllocationStats &allocationStats = AllocationStats::get();
+
+    std::cout << "times allocated on the heap    : " << allocationStats.allocated << '\n';
+    std::cout << "times deallocated from the heap: " << allocationStats.deallocated << '\n';
+#endif
     
     return 0;
 }

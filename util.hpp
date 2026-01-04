@@ -1,27 +1,53 @@
 #pragma once
 
 #include <cstdint>
-#include <string>
 #include <memory>
+#include <limits>
 
-#define STATIC_STRING(STR) STR, sizeof(STR) - 1
-#define VALID_2_BYTES_UTF16(CODEPOINT) (CODEPOINT < 0xD7FF || CODEPOINT >= 0xE000)
-#define VALID_4_BYTES_UTF16(HIGH, LOW) (HIGH >= 0xD800 && HIGH <= 0xDBFF && LOW >= 0xDC00 && LOW <= 0xDFFF)
+namespace CPPJSON {
+namespace Util {
 
-namespace CJSON {
+bool          isWhitespace   (char c)                                         noexcept;
+bool          isDelimiter    (char c)                                         noexcept;
+bool          isDigit        (char c)                                         noexcept;
+uint16_t      hexToUtf16     (const char *unicode, bool &success)             noexcept;
+char*         utf16ToUtf8    (char *destination, uint16_t codepoint)          noexcept;
+char*         utf16ToUtf8    (char *destination, uint16_t high, uint16_t low) noexcept;
+bool          isValidUtf16   (std::uint16_t high)                             noexcept;
+bool          isValidUtf16   (std::uint16_t high, std::uint16_t low)          noexcept; 
+double        parseFloat64   (const char *str, bool &success)                 noexcept;
+long double   parseLongDouble(const char *str, bool &success)                 noexcept;
+uint64_t      parseUint64    (const char *str, bool &success)                 noexcept;
+int64_t       parseInt64     (const char *str, bool &success)                 noexcept;
+void          printBytes     (const void *buffer, const size_t size)          noexcept;
+std::uint64_t usecTimestamp  ()                                               noexcept;
 
-bool         isWhitespace     (const char c);
-bool         isDelimiter      (const char c);
-bool         isDigit          (const char c);
-uint16_t     parseCodepoint   (const char *const codepoint, bool &success);
-void         utf16ToUtf8      (std::string& destination, const uint16_t codepoint);
-void         utf16ToUtf8      (std::string& destination, const uint16_t high, const uint16_t low);
-double       parseFloat64     (const std::string& str, bool &success);
-long double  parseLongDouble  (const std::string& str, bool &success);
-uint64_t     parseUint64      (const std::string& str, bool &success);
-int64_t      parseInt64       (const std::string& str, bool &success);
-void         printBytes       (const void *const buffer, const size_t size);
-std::unique_ptr<char[]> file_get_contents(const std::string& path, size_t &filesize);
-long         usec_timestamp   ();
+template<
+    typename T,
+    typename std::enable_if<std::is_unsigned<T>::value, bool>::type = true
+>
+T safeMult(T a, T b, bool &success) noexcept {
+    if(b == 0) {
+        success = true;
+        return 0;
+    }
 
+    if(a > std::numeric_limits<T>::max() / b) {
+        success = false;
+        return 0;
+    }
+
+    success = true;
+    return a * b;
+}
+
+template<
+    typename T,
+    typename std::enable_if<std::is_unsigned<T>::value, bool>::type = true
+>
+bool checkMultOverflow(T a, T b) noexcept {
+    return b != 0 && a > std::numeric_limits<T>::max() / b;
+}
+
+}
 }
