@@ -48,7 +48,7 @@ void *calloc(const std::size_t count, const std::size_t size) noexcept {
 char *strdup(const char *const str) noexcept {
     assert(str != NULL);
 
-    char *ret = static_cast<char*>(malloc(std::strlen(str) + 1));
+    char *ret = static_cast<char*>(CPPJSON::malloc(std::strlen(str) + 1));
     if(ret == nullptr) {
         return nullptr;
     }

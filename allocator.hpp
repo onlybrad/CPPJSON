@@ -51,6 +51,10 @@ struct GeneralAllocator {
         return false;
     }
 
+    template <class U>
+    GeneralAllocator(const GeneralAllocator<U>&){
+    
+    }
 private:
     static GeneralAllocator<T> defaultAllocator;
 };
@@ -65,7 +69,7 @@ T *GeneralAllocator<T>::allocate(const size_type count) {
         throw std::bad_array_new_length();
     }
 
-    T *const data = static_cast<T*>(malloc(static_cast<std::size_t>(count) * sizeof(T)));
+    T *const data = static_cast<T*>(CPPJSON::malloc(static_cast<std::size_t>(count) * sizeof(T)));
     if(data == nullptr) {
         throw std::bad_alloc();
     }
@@ -75,7 +79,7 @@ T *GeneralAllocator<T>::allocate(const size_type count) {
 
 template<typename T>
 void GeneralAllocator<T>::deallocate(T *const data, const size_type) noexcept {
-    free(data);
+    CPPJSON::free(data);
 }
 
 template<typename T>
