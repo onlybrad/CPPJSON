@@ -106,6 +106,11 @@ static void testNestedObjects() {
     assert(innerObject->asObject() != nullptr);
     assert(innerObject->asObject(success) != nullptr);
     assert(success);
+    
+    success = json.asObject()->getObject("key1", [innerObject](Object &object) {
+        assert(&object == innerObject->asObject());
+    });
+    assert(success);
 
     const String *const value = innerObject->asObject()->getString("innerKey");
     assert(value != nullptr);
@@ -130,6 +135,8 @@ static void testNestedObjects() {
     assert(*innerValue->asString() == "value");
     assert(*innerValue->asString(success) == "value");
     assert(success);
+
+
 }
 
 static void testObjectArray() {
@@ -163,6 +170,24 @@ static void testObjectArray() {
     value = object->asObject()->getString("key1");
     assert(value != nullptr);
     assert(*value == "value1");
+
+    success = object->asObject()->getString("key1", [](String& v){
+        assert(v == "value1");
+    });
+    assert(success);
+    success = object->asObject()->getString("key1", [](String& v){
+        assert(v == "value1");
+    }, []() {
+        assert(false);
+    });
+    assert(success);
+    success = object->asObject()->getString("key112345", [](String& v){
+        (void)v;
+        assert(false);
+    }, []() {
+        assert(true);
+    });
+    assert(!success);
 
     object = json[1].get();
     assert(object != nullptr);
@@ -318,13 +343,13 @@ static void testDeepNesting() {
     assert(*value == "value");
     
     success = json["key1"]["key2"]["key3"]["key4"]["key5"][5U].asString([](String &v) {
-        (void)v;
+        assert(v == "value");
         assert(true);
     });
     assert(success);
 
     success = json["key1"]["key2"]["key3"]["key4"]["key5"][5U].asString([](String &v) {
-        (void)v;
+        assert(v == "value");
         assert(true);
     }, []() {
         assert(false);
@@ -584,7 +609,7 @@ static void testCreateObject() {
     assert(object2["key1"]->asUint64() == value1);
     assert(object2["key1"]->asUint64(success) == value1);
     assert(success);
-    
+
     *(*object1)["key1"] = std::move(object2);
     *(*object1)["key2"] = value2;
     object1->set("key3", value3);
