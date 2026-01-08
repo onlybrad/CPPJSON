@@ -316,6 +316,28 @@ static void testDeepNesting() {
     assert(value != nullptr);
     assert(success);
     assert(*value == "value");
+    
+    success = json["key1"]["key2"]["key3"]["key4"]["key5"][5U].asString([](String &v) {
+        (void)v;
+        assert(true);
+    });
+    assert(success);
+
+    success = json["key1"]["key2"]["key3"]["key4"]["key5"][5U].asString([](String &v) {
+        (void)v;
+        assert(true);
+    }, []() {
+        assert(false);
+    });
+    assert(success);
+
+    success = json["key1"]["key2"]["key3"]["key4"]["key6"][5U].asString([](String &v) {
+        (void)v;
+        assert(false);
+    }, []() {
+        assert(true);
+    });
+    assert(!success);
 }
 
 static void testNoQuotesKey() {

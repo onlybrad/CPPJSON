@@ -159,7 +159,7 @@ int main() {
 
 ### Query a Specific Value of a Specific Type.
 
-Available functions (all come in 2 versions: with no parameter and with a reference to a success bool):
+Available functions (all come in 4 versions: with no parameter, with a reference to a success bool, with a success callback, and with a success and failure callback)
 
 - asArray   => Array*
 - asObject  => Object*
@@ -191,7 +191,15 @@ int main() {
         //if success is true then the JSON object has this form: {"key1": {"innerKey2": myUint64}} and myUint64 is stored as an unsigned 64 bit integer
     }
 
-    //Note: if the value is stored as int64_t (the parser will only use int64_t with negative numbers) and you request an uint64_t, it will fail.
+    success = json["key1"]["innerKey2"].asUint64([](const std::uint64_t value) {
+        //success callback
+    });
+
+    success = json["key1"]["innerKey2"].asUint64([](const std::uint64_t value) {
+        //success callback
+    }, []() {
+        //failure callback
+    });
 
     return EXIT_SUCCESS;
 }

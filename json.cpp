@@ -4,7 +4,7 @@
 
 namespace CPPJSON {
 
-QueryBuilder::QueryBuilder(JSON *json) noexcept :
+QueryBuilder::QueryBuilder(JSON *const json) noexcept :
 m_json(json)
 {}
 
@@ -50,6 +50,222 @@ JSON *QueryBuilder::get() noexcept {
     return m_json; 
 }
 
+String *QueryBuilder::asString(bool &success) noexcept { 
+    return asPtr<String, &JSON::asString>(success);
+}
+
+double QueryBuilder::asFloat64(bool &success) const noexcept { 
+    return as<double, &JSON::asFloat64>(success);
+}
+
+int64_t QueryBuilder::asInt64(bool &success) const noexcept { 
+    return as<std::int64_t, &JSON::asInt64>(success);
+}
+
+uint64_t QueryBuilder::asUint64(bool &success) const noexcept { 
+    return as<std::uint64_t, &JSON::asUint64>(success);
+}
+
+Object *QueryBuilder::asObject(bool &success) noexcept { 
+    return asPtr<Object, &JSON::asObject>(success);
+}
+
+Array *QueryBuilder::asArray(bool &success) noexcept { 
+    return asPtr<Array, &JSON::asArray>(success);
+}
+
+std::nullptr_t QueryBuilder::asNull(bool &success) const noexcept { 
+    return as<std::nullptr_t, &JSON::asNull>(success);
+}
+
+bool QueryBuilder::asBool(bool &success) const noexcept { 
+    return as<bool, &JSON::asBool>(success);
+}
+
+String *QueryBuilder::asString() noexcept {
+    bool success;
+    return asString(success);
+}
+
+double QueryBuilder::asFloat64() const noexcept {
+    bool success;
+    return asFloat64(success);
+}
+
+int64_t QueryBuilder::asInt64() const noexcept {
+    bool success;
+    return asInt64(success);
+}
+
+uint64_t QueryBuilder::asUint64() const noexcept {
+    bool success;
+    return asUint64(success);
+}
+
+Object *QueryBuilder::asObject() noexcept {
+    bool success;
+    return asObject(success);
+}
+
+Array *QueryBuilder::asArray() noexcept {
+    bool success;
+    return asArray(success);
+}
+
+std::nullptr_t QueryBuilder::asNull() const noexcept {
+    bool success;
+    return asNull(success);
+}
+
+bool QueryBuilder::asBool() const noexcept {
+    bool success;
+    return asBool(success);
+}
+
+bool QueryBuilder::asString(AsCallbackRef<String> callback, FailureCallback failureCallback) noexcept {
+    assert(callback != nullptr);
+    assert(failureCallback != nullptr);
+
+    return as<String, &JSON::asString>(callback, failureCallback);
+}
+
+bool QueryBuilder::asFloat64(AsCallback<double> callback, FailureCallback failureCallback) const noexcept {
+    assert(callback != nullptr);
+    assert(failureCallback != nullptr);
+
+    return as<double, &JSON::asFloat64>(callback, failureCallback);
+}
+
+bool QueryBuilder::asInt64(AsCallback<std::int64_t> callback, FailureCallback failureCallback) const noexcept {
+    assert(callback != nullptr);
+    assert(failureCallback != nullptr);
+
+    return as<std::int64_t, &JSON::asInt64>(callback, failureCallback);
+}
+
+bool QueryBuilder::asUint64(AsCallback<std::uint64_t> callback, FailureCallback failureCallback) const noexcept {
+    assert(callback != nullptr);
+    assert(failureCallback != nullptr);
+
+    return as<std::uint64_t, &JSON::asUint64>(callback, failureCallback);
+}
+
+bool QueryBuilder::asObject(AsCallbackRef<Object> callback, FailureCallback failureCallback) noexcept {
+    assert(callback != nullptr);
+    assert(failureCallback != nullptr);
+
+    return as<Object, &JSON::asObject>(callback, failureCallback);
+}
+
+bool QueryBuilder::asArray(AsCallbackRef<Array> callback, FailureCallback failureCallback) noexcept {
+    assert(callback != nullptr);
+    assert(failureCallback != nullptr);
+
+    return as<Array, &JSON::asArray>(callback, failureCallback);
+}
+
+bool QueryBuilder::asNull(AsCallback<std::nullptr_t> callback, FailureCallback failureCallback) const noexcept {
+    assert(callback != nullptr);
+    assert(failureCallback != nullptr);
+
+    return as<std::nullptr_t, &JSON::asNull>(callback, failureCallback);
+}
+
+bool QueryBuilder::asBool(AsCallback<bool> callback, FailureCallback failureCallback) const noexcept {
+    assert(callback != nullptr);
+    assert(failureCallback != nullptr);
+
+    return as<bool, &JSON::asBool>(callback, failureCallback);
+}
+
+bool QueryBuilder::asString(AsCallbackRef<String> callback) noexcept {
+    assert(callback != nullptr);
+
+    return as<String, &JSON::asString>(callback);
+}
+
+bool QueryBuilder::asFloat64(AsCallback<double> callback) const noexcept {
+    assert(callback != nullptr);
+
+    return as<double, &JSON::asFloat64>(callback);
+}
+
+bool QueryBuilder::asInt64(AsCallback<std::int64_t> callback) const noexcept {
+    assert(callback != nullptr);
+
+    return as<std::int64_t, &JSON::asInt64>(callback);
+}
+
+bool QueryBuilder::asUint64(AsCallback<std::uint64_t> callback) const noexcept {
+    assert(callback != nullptr);
+
+    return as<std::uint64_t, &JSON::asUint64>(callback);
+}
+
+bool QueryBuilder::asObject(AsCallbackRef<Object> callback) noexcept {
+    assert(callback != nullptr);
+
+    return as<Object, &JSON::asObject>(callback);
+}
+
+bool QueryBuilder::asArray(AsCallbackRef<Array> callback) noexcept {
+    assert(callback != nullptr);
+
+    return as<Array, &JSON::asArray>(callback);
+}
+
+bool QueryBuilder::asNull(AsCallback<std::nullptr_t> callback) const noexcept {
+    assert(callback != nullptr);
+
+    return as<std::nullptr_t, &JSON::asNull>(callback);
+}
+
+bool QueryBuilder::asBool(AsCallback<bool> callback) const noexcept {
+    assert(callback != nullptr);
+    
+    return as<bool, &JSON::asBool>(callback);
+}
+
+template<>
+std::int64_t JSON::as<std::int64_t, JSON::Type::INT64, nullptr>(bool &success) const noexcept {
+    if(m_type == Type::UINT64) {
+        if(m_value.uint64 > std::numeric_limits<std::int64_t>().max()) {
+            success = false;
+            return 0;
+        }
+        success = true;
+        return static_cast<std::int64_t>(m_value.uint64);
+    }
+
+    if(m_type != Type::INT64) {
+        success = false;
+        return 0;
+    }
+
+    success = true;
+    return m_value.int64;
+}
+
+template<>
+std::uint64_t JSON::as<std::uint64_t, JSON::Type::UINT64, nullptr>(bool &success) const noexcept {
+    if(m_type == Type::INT64) {
+        if(m_value.int64 < 0) {
+            success = false;
+            return 0;
+        }
+        success = true;
+        return static_cast<std::uint64_t>(m_value.int64);
+    }
+
+    if(m_type != Type::UINT64) {
+        success = false;
+        return 0;
+    }
+
+    success = true;
+    return m_value.uint64;
+}
+
 String *JSON::asString() noexcept {
     bool success;
     return asString(success);
@@ -89,118 +305,6 @@ bool JSON::asBool() const noexcept {
     bool success;
     return asBool(success);
 };
-
-String *QueryBuilder::asString(bool &success) noexcept { 
-    if(m_json == nullptr) {
-        success = false;
-        return nullptr;
-    }
-
-    return m_json->asString(success);
-}
-
-double QueryBuilder::asFloat64(bool &success) const noexcept { 
-    if(m_json == nullptr) {
-        success = false;
-        return 0.0;
-    }
-
-    return m_json->asFloat64(success);
-}
-
-int64_t QueryBuilder::asInt64(bool &success) const noexcept { 
-    if(m_json == nullptr) {
-        success = false;
-        return 0;
-    }
-
-    return m_json->asInt64(success);
-}
-
-uint64_t QueryBuilder::asUint64(bool &success) const noexcept { 
-    if(m_json == nullptr) {
-        success = false;
-        return 0;
-    }
-
-    return m_json->asUint64(success);
-}
-
-Object *QueryBuilder::asObject(bool &success) noexcept { 
-    if(m_json == nullptr) {
-        success = false;
-        return nullptr;
-    }
-
-    return m_json->asObject(success);
-}
-
-Array *QueryBuilder::asArray(bool &success) noexcept { 
-    if(m_json == nullptr) {
-        success = false;
-        return nullptr;
-    }
-
-    return m_json->asArray(success);
-}
-
-std::nullptr_t QueryBuilder::asNull(bool &success) const noexcept { 
-    if(m_json == nullptr) {
-        success = false;
-        return nullptr;
-    }
-
-    return m_json->asNull(success);
-}
-
-bool QueryBuilder::asBool(bool &success) const noexcept { 
-    if(m_json == nullptr) {
-        success = false;
-        return false;
-    }
-
-    return m_json->asBool(success);
-}
-
-String *QueryBuilder::asString () noexcept {
-    bool success;
-    return asString(success);
-}
-
-double QueryBuilder::asFloat64() const noexcept {
-    bool success;
-    return asFloat64(success);
-}
-
-int64_t QueryBuilder::asInt64() const noexcept {
-    bool success;
-    return asInt64(success);
-}
-
-uint64_t QueryBuilder::asUint64() const noexcept {
-    bool success;
-    return asUint64(success);
-}
-
-Object *QueryBuilder::asObject() noexcept {
-    bool success;
-    return asObject(success);
-}
-
-Array *QueryBuilder::asArray() noexcept {
-    bool success;
-    return asArray(success);
-}
-
-std::nullptr_t QueryBuilder::asNull() const noexcept {
-    bool success;
-    return asNull(success);
-}
-
-bool QueryBuilder::asBool() const noexcept {
-    bool success;
-    return asBool(success);
-}
 
 JSON::JSON(const JSON &json) {
     copy(json);
@@ -306,72 +410,139 @@ QueryBuilder JSON::operator[](const char *const key) noexcept {
 }
 
 String *JSON::asString(bool &success) noexcept { 
-    if(m_type != Type::STRING) {
-        success = false;
-        return nullptr;
-    }
-    success = true;
-    return &m_value.string;
+    return asPtr<String, Type::STRING, &JSON::Value::string>(success);
 }
 
 double JSON::asFloat64(bool &success) const noexcept { 
-    if(m_type != Type::FLOAT64) {
-        success = false;
-        return 0.0;
-    }
-    success = true;
-    return m_value.float64;
+    return as<double, Type::FLOAT64, &JSON::Value::float64>(success);
 }
 
-int64_t JSON::asInt64(bool &success) const noexcept { 
-    if(m_type != Type::INT64) {
-        success = false;
-        return 0;
-    }
-    success = true;
-    return m_value.int64;
+std::int64_t JSON::asInt64(bool &success) const noexcept { 
+    return as<std::int64_t, Type::INT64, nullptr>(success);
 }
 
-uint64_t JSON::asUint64(bool &success) const noexcept { 
-    if(m_type != Type::UINT64) {
-        success = false;
-        return 0;
-    }
-    success = true;
-    return m_value.uint64;
+std::uint64_t JSON::asUint64(bool &success) const noexcept { 
+    return as<std::uint64_t, Type::UINT64, nullptr>(success);
 }
 
 Object *JSON::asObject(bool &success) noexcept { 
-    if(m_type != Type::OBJECT) {
-        success = false;
-        return nullptr;
-    }
-    success = true;
-    return &m_value.object;
+    return asPtr<Object, Type::OBJECT, &JSON::Value::object>(success);
 }
 
 Array *JSON::asArray(bool &success) noexcept { 
-    if(m_type != Type::ARRAY) {
-        success = false;
-        return nullptr;
-    }
-    success = true;
-    return &m_value.array;
+    return asPtr<Array, Type::ARRAY, &JSON::Value::array>(success);
 }
 
 std::nullptr_t JSON::asNull(bool &success) const noexcept { 
-    success = m_type == Type::NUL;
-
-    return nullptr;
+    return as<std::nullptr_t, Type::NUL, &JSON::Value::null>(success);
 }
 
-bool JSON::asBool(bool &success) const noexcept { 
-    if(m_type != Type::BOOL) {
-        success = false;
-        return false;
-    }
-    success = true;
-    return m_value.boolean;
+bool JSON::asBool(bool &success) const noexcept {
+    return as<bool, Type::BOOL, &JSON::Value::boolean>(success);
+}
+
+bool JSON::asString(AsCallbackRef<String> callback, FailureCallback failureCallback) noexcept {
+    assert(callback != nullptr);
+    assert(failureCallback != nullptr);
+
+    return as<String, Type::STRING, &Value::string>(callback, failureCallback);
+}
+
+bool JSON::asFloat64(AsCallback<double> callback, FailureCallback failureCallback) const noexcept {
+    assert(callback != nullptr);
+    assert(failureCallback != nullptr);
+
+    return as<double, Type::FLOAT64, &Value::float64>(callback, failureCallback);
+}
+
+bool JSON::asInt64(AsCallback<std::int64_t> callback, FailureCallback failureCallback) const noexcept {
+    assert(callback != nullptr);
+    assert(failureCallback != nullptr);
+
+    return as<std::int64_t, Type::INT64, nullptr>(callback, failureCallback);
+}
+
+bool JSON::asUint64(AsCallback<std::uint64_t> callback, FailureCallback failureCallback) const noexcept {
+    assert(callback != nullptr);
+    assert(failureCallback != nullptr);
+
+    return as<std::uint64_t, Type::UINT64, nullptr>(callback, failureCallback);
+}
+
+bool JSON::asObject(AsCallbackRef<Object> callback, FailureCallback failureCallback) noexcept {
+    assert(callback != nullptr);
+    assert(failureCallback != nullptr);
+
+    return as<Object, Type::OBJECT, &Value::object>(callback, failureCallback);
+}
+
+bool JSON::asArray(AsCallbackRef<Array> callback, FailureCallback failureCallback) noexcept {
+    assert(callback != nullptr);
+    assert(failureCallback != nullptr);
+
+    return as<Array, Type::ARRAY, &Value::array>(callback, failureCallback);
+}
+
+bool JSON::asNull(AsCallback<std::nullptr_t> callback, FailureCallback failureCallback) const noexcept {
+    assert(callback != nullptr);
+    assert(failureCallback != nullptr);
+
+    return as<std::nullptr_t, Type::NUL, &Value::null>(callback, failureCallback);
+}
+
+bool JSON::asBool(AsCallback<bool> callback, FailureCallback failureCallback) const noexcept {
+    assert(callback != nullptr);
+    assert(failureCallback != nullptr);
+
+    return as<bool, Type::BOOL, &Value::boolean>(callback, failureCallback);
+}
+
+bool JSON::asString(AsCallbackRef<String> callback) noexcept {
+    assert(callback != nullptr);
+
+    return as<String, Type::STRING, &Value::string>(callback);
+}
+
+bool JSON::asFloat64(AsCallback<double> callback) const noexcept {
+    assert(callback != nullptr);
+
+    return as<double, Type::FLOAT64, &Value::float64>(callback);
+}
+
+bool JSON::asInt64(AsCallback<std::int64_t> callback) const noexcept {
+    assert(callback != nullptr);
+
+    return as<std::int64_t, Type::INT64, nullptr>(callback);
+}
+
+bool JSON::asUint64(AsCallback<std::uint64_t> callback) const noexcept {
+    assert(callback != nullptr);
+
+    return as<std::uint64_t, Type::UINT64, nullptr>(callback);
+}
+
+bool JSON::asObject(AsCallbackRef<Object> callback) noexcept {
+    assert(callback != nullptr);
+
+    return as<Object, Type::OBJECT, &Value::object>(callback);
+}
+
+bool JSON::asArray(AsCallbackRef<Array> callback) noexcept {
+    assert(callback != nullptr);
+
+    return as<Array, Type::ARRAY, &Value::array>(callback);
+}
+
+bool JSON::asNull(AsCallback<std::nullptr_t> callback) const noexcept {
+    assert(callback != nullptr);
+
+    return as<std::nullptr_t, Type::NUL, &Value::null>(callback);
+}
+
+bool JSON::asBool(AsCallback<bool> callback) const noexcept {
+    assert(callback != nullptr);
+
+    return as<bool, Type::BOOL, &Value::boolean>(callback);
 }
 
 Object *JSON::makeObject(const Object::Allocator &allocator) noexcept {

@@ -78,17 +78,17 @@ void GeneralAllocator<T>::deallocate(T *const data, const size_type) noexcept {
     free(data);
 }
 
-template <typename T>
+template<typename T>
 GeneralAllocator<T> &GeneralAllocator<T>::getDefault() noexcept {
     return defaultAllocator;
 }
 
-template <typename T>
+template<typename T>
 T *GeneralAllocator<T>::s_allocate(size_type count) {
     return getDefault().allocate(count);
 }
 
-template <typename T>
+template<typename T>
 void GeneralAllocator<T>::s_deallocate(T *data) noexcept {
     getDefault().deallocate(data, 0U);
 }
@@ -145,7 +145,7 @@ m_arena(arena) {
     assert(arena != nullptr);
 }
 
-template <typename T>
+template<typename T>
 T *ArenaAllocator<T>::allocate(size_type count) {
     if(m_arena == nullptr) {
         return nullptr;
@@ -170,7 +170,7 @@ T *ArenaAllocator<T>::allocate(size_type count) {
 template<typename T>
 void ArenaAllocator<T>::deallocate(T *const, const size_type) noexcept {}
 
-template <typename T>
+template<typename T>
 template <typename U>
 ArenaAllocator<T>::ArenaAllocator(const ArenaAllocator<U> &arenaAllocator) noexcept :
 m_arena(arenaAllocator.m_arena)

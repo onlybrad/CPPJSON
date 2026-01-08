@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cassert>
 #include <string>
 #include <cstdint>
 
@@ -8,13 +9,39 @@
 #include "string.hpp"
 
 namespace CPPJSON {
+    class Parser;
 
-class Parser;
+    class QueryBuilder {
 
-class QueryBuilder {
     friend class JSON;
-
+    
     JSON *m_json;
+
+    template<typename T>
+    using AsCallbackRef = void(*)(T&);
+
+    template<typename T>
+    using AsCallback = void(*)(T);
+    
+    typedef void(*FailureCallback)();
+
+    template<typename T, T*(JSON::*method)(bool&)>
+    T *asPtr(bool &success) noexcept;
+
+    template<typename T, T(JSON::*method)(bool&) const>
+    T as(bool &success) const noexcept;
+
+    template<typename T, T*(JSON::*method)(bool&)>
+    bool as(AsCallbackRef<T> callback, FailureCallback failureCallback) noexcept;
+
+    template<typename T, T(JSON::*method)(bool&) const>
+    bool as(AsCallback<T> callback, FailureCallback failureCallback) const noexcept;
+
+    template<typename T, T*(JSON::*method)(bool&)>
+    bool as(AsCallbackRef<T> callback) noexcept;
+
+    template<typename T, T(JSON::*method)(bool&) const>
+    bool as(AsCallback<T> callback) const noexcept;
 
 public:
     QueryBuilder(JSON *json) noexcept;
@@ -34,19 +61,63 @@ public:
     Array         *asArray  (bool &success)       noexcept;
     std::nullptr_t asNull   (bool &success) const noexcept;
     bool           asBool   (bool &success) const noexcept;
-    String        *asString ()                    noexcept;
-    double         asFloat64()              const noexcept;
-    int64_t        asInt64  ()              const noexcept;
-    uint64_t       asUint64 ()              const noexcept;
-    Object        *asObject ()                    noexcept;
-    Array         *asArray  ()                    noexcept;
-    std::nullptr_t asNull   ()              const noexcept;
-    bool           asBool   ()              const noexcept;
+
+    String        *asString ()       noexcept;
+    double         asFloat64() const noexcept;
+    int64_t        asInt64  () const noexcept;
+    uint64_t       asUint64 () const noexcept;
+    Object        *asObject ()       noexcept;
+    Array         *asArray  ()       noexcept;
+    std::nullptr_t asNull   () const noexcept;
+    bool           asBool   () const noexcept;
+
+    bool asString (AsCallbackRef<String>,      FailureCallback)       noexcept;
+    bool asFloat64(AsCallback<double>,         FailureCallback) const noexcept;
+    bool asInt64  (AsCallback<std::int64_t>,   FailureCallback) const noexcept;
+    bool asUint64 (AsCallback<std::uint64_t>,  FailureCallback) const noexcept;
+    bool asObject (AsCallbackRef<Object>,      FailureCallback)       noexcept;
+    bool asArray  (AsCallbackRef<Array>,       FailureCallback)       noexcept;
+    bool asNull   (AsCallback<std::nullptr_t>, FailureCallback) const noexcept;
+    bool asBool   (AsCallback<bool>,           FailureCallback) const noexcept;
+
+    bool asString (AsCallbackRef<String>)            noexcept;
+    bool asFloat64(AsCallback<double>)         const noexcept;
+    bool asInt64  (AsCallback<std::int64_t>)   const noexcept;
+    bool asUint64 (AsCallback<std::uint64_t>)  const noexcept;
+    bool asObject (AsCallbackRef<Object>)            noexcept;
+    bool asArray  (AsCallbackRef<Array>)             noexcept;
+    bool asNull   (AsCallback<std::nullptr_t>) const noexcept;
+    bool asBool   (AsCallback<bool>)           const noexcept;
+
+    bool asString (AsCallbackRef<String>,      std::nullptr_t)       noexcept = delete;
+    bool asFloat64(AsCallback<double>,         std::nullptr_t) const noexcept = delete;
+    bool asInt64  (AsCallback<std::int64_t>,   std::nullptr_t) const noexcept = delete;
+    bool asUint64 (AsCallback<std::uint64_t>,  std::nullptr_t) const noexcept = delete;
+    bool asObject (AsCallbackRef<Object>,      std::nullptr_t)       noexcept = delete;
+    bool asArray  (AsCallbackRef<Array>,       std::nullptr_t)       noexcept = delete;
+    bool asNull   (AsCallback<std::nullptr_t>, std::nullptr_t) const noexcept = delete;
+    bool asBool   (AsCallback<bool>,           std::nullptr_t) const noexcept = delete;
+
+    bool asString (std::nullptr_t)       noexcept = delete;
+    bool asFloat64(std::nullptr_t) const noexcept = delete;
+    bool asInt64  (std::nullptr_t) const noexcept = delete;
+    bool asUint64 (std::nullptr_t) const noexcept = delete;
+    bool asObject (std::nullptr_t)       noexcept = delete;
+    bool asArray  (std::nullptr_t)       noexcept = delete;
+    bool asNull   (std::nullptr_t) const noexcept = delete;
+    bool asBool   (std::nullptr_t) const noexcept = delete;
 };
 
 class JSON {
     friend class Parser;
     friend class QueryBuilder;
+    template<typename T>
+    using AsCallbackRef = void(*)(T&);
+
+    template<typename T>
+    using AsCallback = void(*)(T);
+    
+    typedef void(*FailureCallback)();
 
 public:
     enum class Error {
@@ -75,7 +146,7 @@ public:
         std::uint64_t   uint64;
         Object          object;
         Array           array;
-        std::nullptr_t *null = nullptr;
+        std::nullptr_t  null = nullptr;
         bool            boolean;
         JSON::Error     error;
 
@@ -135,14 +206,15 @@ public:
     QueryBuilder operator[](const char*)        noexcept;
     QueryBuilder operator[](std::nullptr_t)     noexcept = delete;
 
-    String        *asString ()                    noexcept;
-    double         asFloat64()                    noexcept;
-    int64_t        asInt64  ()              const noexcept;
-    uint64_t       asUint64 ()              const noexcept;
-    Object        *asObject ()                    noexcept;
-    Array         *asArray  ()                    noexcept;
-    std::nullptr_t asNull   ()              const noexcept;
-    bool           asBool   ()              const noexcept;
+    String        *asString ()       noexcept;
+    double         asFloat64()       noexcept;
+    int64_t        asInt64  () const noexcept;
+    uint64_t       asUint64 () const noexcept;
+    Object        *asObject ()       noexcept;
+    Array         *asArray  ()       noexcept;
+    std::nullptr_t asNull   () const noexcept;
+    bool           asBool   () const noexcept;
+
     String        *asString (bool &success)       noexcept;
     double         asFloat64(bool &success) const noexcept;
     int64_t        asInt64  (bool &success) const noexcept;
@@ -151,6 +223,42 @@ public:
     Array         *asArray  (bool &success)       noexcept;
     std::nullptr_t asNull   (bool &success) const noexcept;
     bool           asBool   (bool &success) const noexcept;
+
+    bool asString (AsCallbackRef<String>,      FailureCallback)       noexcept;
+    bool asFloat64(AsCallback<double>,         FailureCallback) const noexcept;
+    bool asInt64  (AsCallback<std::int64_t>,   FailureCallback) const noexcept;
+    bool asUint64 (AsCallback<std::uint64_t>,  FailureCallback) const noexcept;
+    bool asObject (AsCallbackRef<Object>,      FailureCallback)       noexcept;
+    bool asArray  (AsCallbackRef<Array>,       FailureCallback)       noexcept;
+    bool asNull   (AsCallback<std::nullptr_t>, FailureCallback) const noexcept;
+    bool asBool   (AsCallback<bool>,           FailureCallback) const noexcept;
+
+    bool asString (AsCallbackRef<String>)            noexcept;
+    bool asFloat64(AsCallback<double>)         const noexcept;
+    bool asInt64  (AsCallback<std::int64_t>)   const noexcept;
+    bool asUint64 (AsCallback<std::uint64_t>)  const noexcept;
+    bool asObject (AsCallbackRef<Object>)            noexcept;
+    bool asArray  (AsCallbackRef<Array>)             noexcept;
+    bool asNull   (AsCallback<std::nullptr_t>) const noexcept;
+    bool asBool   (AsCallback<bool>)           const noexcept;
+
+    bool asString (AsCallbackRef<String>,      std::nullptr_t)       noexcept = delete;
+    bool asFloat64(AsCallback<double>,         std::nullptr_t) const noexcept = delete;
+    bool asInt64  (AsCallback<std::int64_t>,   std::nullptr_t) const noexcept = delete;
+    bool asUint64 (AsCallback<std::uint64_t>,  std::nullptr_t) const noexcept = delete;
+    bool asObject (AsCallbackRef<Object>,      std::nullptr_t)       noexcept = delete;
+    bool asArray  (AsCallbackRef<Array>,       std::nullptr_t)       noexcept = delete;
+    bool asNull   (AsCallback<std::nullptr_t>, std::nullptr_t) const noexcept = delete;
+    bool asBool   (AsCallback<bool>,           std::nullptr_t) const noexcept = delete;
+
+    bool asString (std::nullptr_t)       noexcept = delete;
+    bool asFloat64(std::nullptr_t) const noexcept = delete;
+    bool asInt64  (std::nullptr_t) const noexcept = delete;
+    bool asUint64 (std::nullptr_t) const noexcept = delete;
+    bool asObject (std::nullptr_t)       noexcept = delete;
+    bool asArray  (std::nullptr_t)       noexcept = delete;
+    bool asNull   (std::nullptr_t) const noexcept = delete;
+    bool asBool   (std::nullptr_t) const noexcept = delete;
 
     Object *makeObject(const Object::Allocator&) noexcept;
     Array  *makeArray(const Array::Allocator&)   noexcept;
@@ -190,6 +298,171 @@ private:
     JSON &set(Error)       noexcept;
     void destructor()      noexcept;
     void copy(const JSON&);
+
+    template<typename Tclass, Type type, Tclass Value::*member>
+    Tclass *asPtr(bool &success) noexcept {
+        if(m_type != type) {
+            success = false;
+            return nullptr;
+        }
+        success = true;
+        return &(this->m_value.*member);
+    }
+
+    template<typename Tclass, Type type, Tclass Value::*member>
+    Tclass as(bool &success) const noexcept {
+        if(m_type != type) {
+            success = false;
+            return 0;
+        }
+        success = true;
+        return this->m_value.*member;
+    }
+
+    template<typename Tclass, Type type, Tclass Value::*member>
+    bool as(AsCallbackRef<Tclass> callback, FailureCallback failureCallback) noexcept {
+        assert(callback != nullptr);
+        assert(failureCallback != nullptr);
+
+        bool success;
+        Tclass *const value = asPtr<Tclass, type, member>(success);
+
+        if(success) {
+            callback(*value);
+        } else {
+            failureCallback();
+        }
+    
+        return success;
+    }
+
+    template<typename Tclass, Type type, Tclass Value::*member>
+    bool as(AsCallback<Tclass> callback, FailureCallback failureCallback) const noexcept {
+        assert(callback != nullptr);
+        assert(failureCallback != nullptr);
+
+        bool success;
+        const Tclass value = as<Tclass, type, member>(success);
+
+        if(success) {
+            callback(value);
+            return true;
+        } else {
+            failureCallback();
+        }
+
+        return success;
+    }
+
+    template<typename Tclass, Type type, Tclass Value::*member>
+    bool as(AsCallbackRef<Tclass> callback) noexcept {
+        assert(callback != nullptr);
+
+        bool success;
+        Tclass *const value = asPtr<Tclass, type, member>(success);
+
+        if(success) {
+            callback(*value);
+        }
+
+        return success;
+    }
+
+    template<typename Tclass, Type type, Tclass Value::*member>
+    bool as(AsCallback<Tclass> callback) const noexcept {
+        assert(callback != nullptr);
+
+        bool success;
+        const Tclass value = as<Tclass, type, member>(success);
+
+        if(success) {
+            callback(value);
+            return true;
+        }
+        return success;
+    }
 };
+
+template<typename T, T*(JSON::*method)(bool&)>
+T *QueryBuilder::asPtr(bool &success) noexcept {
+    if(m_json == nullptr) {
+        success = false;
+        return nullptr;
+    }
+
+    return (m_json->*method)(success);
+}
+
+template<typename T, T(JSON::*method)(bool&) const>
+T QueryBuilder::as(bool &success) const noexcept {
+    if(m_json == nullptr) {
+        success = false;
+        return 0;
+    }
+
+    return (m_json->*method)(success);
+}
+
+template<typename T, T*(JSON::*method)(bool&)>
+bool QueryBuilder::as(AsCallbackRef<T> callback, FailureCallback failureCallback) noexcept {
+    assert(callback != nullptr);
+    assert(failureCallback != nullptr);
+
+    bool success;
+    T *const value = asPtr<T, method>(success);
+
+    if(success) {
+        callback(*value);
+    } else {
+        failureCallback();
+    }
+    
+    return success;
+}
+
+template<typename T, T(JSON::*method)(bool&) const>
+bool QueryBuilder::as(AsCallback<T> callback, FailureCallback failureCallback) const noexcept {
+    assert(callback != nullptr);
+    assert(failureCallback != nullptr);
+
+    bool success;
+    const T value = as<T, method>(success);
+
+    if(success) {
+        callback(value);
+    } else {
+        failureCallback();
+    }
+    
+    return success;
+}
+
+template<typename T, T*(JSON::*method)(bool&)>
+bool QueryBuilder::as(AsCallbackRef<T> callback) noexcept {
+    assert(callback != nullptr);
+
+    bool success;
+    T *const value = asPtr<T, method>(success);
+
+    if(success) {
+        callback(*value);
+    }
+
+    return success;
+}
+
+template<typename T, T(JSON::*method)(bool&) const>
+bool QueryBuilder::as(AsCallback<T> callback) const noexcept {
+    assert(callback != nullptr);
+
+    bool success;
+    const T value = as<T, method>(success);
+
+    if(success) {
+        callback(value);
+    }
+
+    return success;
+}
 
 }
