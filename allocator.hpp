@@ -51,6 +51,10 @@ struct GeneralAllocator {
         return false;
     }
 
+    template <class U>
+    GeneralAllocator(const GeneralAllocator<U>&){
+    
+    }
 private:
     static GeneralAllocator<T> defaultAllocator;
 };
@@ -75,7 +79,7 @@ T *GeneralAllocator<T>::allocate(const size_type count) {
 
 template<typename T>
 void GeneralAllocator<T>::deallocate(T *const data, const size_type) noexcept {
-    free(data);
+    CPPJSON::free(data);
 }
 
 template <typename T>
