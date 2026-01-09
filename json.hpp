@@ -3,6 +3,7 @@
 #include <cassert>
 #include <string>
 #include <cstdint>
+#include <functional>
 
 #include "object.hpp"
 #include "array.hpp"
@@ -18,12 +19,12 @@ namespace CPPJSON {
     JSON *m_json;
 
     template<typename T>
-    using AsCallbackRef = void(*)(T&);
+    using AsCallbackRef = std::function<void(T&)>;
 
     template<typename T>
-    using AsCallback = void(*)(T);
+    using AsCallback = std::function<void(T)>;
     
-    typedef void(*FailureCallback)();
+    typedef std::function<void()> FailureCallback;
 
     template<typename T, T*(JSON::*method)(bool&)>
     T *asPtr(bool &success) noexcept;
@@ -112,12 +113,12 @@ class JSON {
     friend class Parser;
     friend class QueryBuilder;
     template<typename T>
-    using AsCallbackRef = void(*)(T&);
+    using AsCallbackRef = std::function<void(T&)>;
 
     template<typename T>
-    using AsCallback = void(*)(T);
+    using AsCallback = std::function<void(T)>;
     
-    typedef void(*FailureCallback)();
+    typedef std::function<void()> FailureCallback;
 
 public:
     enum class Error {
