@@ -227,43 +227,88 @@ bool QueryBuilder::asBool(AsCallback<bool> callback) const noexcept {
 }
 
 template<>
+double JSON::as<double, JSON::Type::FLOAT64, nullptr>(bool &success) const noexcept {
+    switch(m_type) {    
+    case Type::FLOAT64:
+        success = true;
+        return m_value.float64;
+
+    case Type::INT64:
+        success = true;
+        return static_cast<double>(m_value.int64);
+    
+    case Type::UINT64:
+        success = true;
+        return static_cast<double>(m_value.uint64);
+
+    default:
+        success = false;
+        return 0.0;
+    }
+}
+
+template<>
 std::int64_t JSON::as<std::int64_t, JSON::Type::INT64, nullptr>(bool &success) const noexcept {
-    if(m_type == Type::UINT64) {
-        if(m_value.uint64 > std::numeric_limits<std::int64_t>().max()) {
+    constexpr double minInt64d = static_cast<double>(std::numeric_limits<std::uint64_t>().min());
+    constexpr double maxInt64d = static_cast<double>(std::numeric_limits<std::uint64_t>().max());
+    constexpr std::uint64_t maxInt64u = static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>().max());
+
+    switch(m_type) {    
+    case Type::FLOAT64:
+        if(m_value.float64 < minInt64d || m_value.float64 > maxInt64d) {
+            success = false;
+            return 0;
+        }
+        success = true;
+        return static_cast<std::uint64_t>(m_value.float64);
+
+    case Type::INT64:
+        success = true;
+        return m_value.int64;
+    
+    case Type::UINT64:
+        if(m_value.uint64 > maxInt64u) {
             success = false;
             return 0;
         }
         success = true;
         return static_cast<std::int64_t>(m_value.uint64);
-    }
 
-    if(m_type != Type::INT64) {
+    default:
         success = false;
         return 0;
     }
-
-    success = true;
-    return m_value.int64;
 }
 
 template<>
 std::uint64_t JSON::as<std::uint64_t, JSON::Type::UINT64, nullptr>(bool &success) const noexcept {
-    if(m_type == Type::INT64) {
+    constexpr double maxUint64 = static_cast<double>(std::numeric_limits<std::uint64_t>().max());
+
+    switch(m_type) {
+    case Type::FLOAT64:
+        if(m_value.float64 < 0.0 || m_value.float64 > maxUint64) {
+            success = false;
+            return 0U;
+        }
+        success = true;
+        return static_cast<std::uint64_t>(m_value.float64);
+
+    case Type::INT64:
         if(m_value.int64 < 0) {
             success = false;
-            return 0;
+            return 0U;
         }
         success = true;
         return static_cast<std::uint64_t>(m_value.int64);
-    }
+    
+    case Type::UINT64:
+        success = true;
+        return m_value.uint64;
 
-    if(m_type != Type::UINT64) {
+    default:
         success = false;
-        return 0;
+        return 0U;
     }
-
-    success = true;
-    return m_value.uint64;
 }
 
 String *JSON::asString() noexcept {
@@ -414,7 +459,7 @@ String *JSON::asString(bool &success) noexcept {
 }
 
 double JSON::asFloat64(bool &success) const noexcept { 
-    return as<double, Type::FLOAT64, &JSON::Value::float64>(success);
+    return as<double, Type::FLOAT64, nullptr>(success);
 }
 
 std::int64_t JSON::asInt64(bool &success) const noexcept { 
@@ -452,7 +497,7 @@ bool JSON::asFloat64(AsCallback<double> callback, FailureCallback failureCallbac
     assert(callback != nullptr);
     assert(failureCallback != nullptr);
 
-    return as<double, Type::FLOAT64, &Value::float64>(callback, failureCallback);
+    return as<double, Type::FLOAT64, nullptr>(callback, failureCallback);
 }
 
 bool JSON::asInt64(AsCallback<std::int64_t> callback, FailureCallback failureCallback) const noexcept {
@@ -506,7 +551,7 @@ bool JSON::asString(AsCallbackRef<String> callback) noexcept {
 bool JSON::asFloat64(AsCallback<double> callback) const noexcept {
     assert(callback != nullptr);
 
-    return as<double, Type::FLOAT64, &Value::float64>(callback);
+    return as<double, Type::FLOAT64, nullptr>(callback);
 }
 
 bool JSON::asInt64(AsCallback<std::int64_t> callback) const noexcept {
