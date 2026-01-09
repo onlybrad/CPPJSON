@@ -43,11 +43,11 @@ public:
     bool                 reserve   (unsigned);
     void                 push      (ValueType);
 
-    const String &operator+= (std::nullptr_t) = delete;
-    const String &operator=  (std::nullptr_t) = delete;
+    const String &operator+=(std::nullptr_t) = delete;
+    const String &operator= (std::nullptr_t) = delete;
 
-    const char *getData()      const noexcept;
-    Container  &getContainer() noexcept;
+    const char *getCStr     () const noexcept;
+    Container  &getContainer()       noexcept;
     Allocator   getAllocator() const noexcept;   
 
 private:

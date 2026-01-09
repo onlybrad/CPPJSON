@@ -51,7 +51,7 @@ Object::ValueType *Object::get(const std::string &key) noexcept {
 }
 
 Object::ValueType *Object::get(const String &key) noexcept {
-    return get(key.getData());
+    return get(key.getCStr());
 }
 
 Object::ValueType *Object::get(const char *const key) noexcept {
@@ -75,7 +75,7 @@ void Object::remove(const std::string &key) noexcept {
 }
 
 void Object::remove(const String &key) noexcept {
-    return remove(key.getData());
+    return remove(key.getCStr());
 }
 
 void Object::remove(const char *const key) noexcept {
@@ -117,35 +117,35 @@ bool Object::getBool(const std::string &key, bool &success) const noexcept {
 }
 
 String *Object::getString(const String &key, bool &success) noexcept {
-    return getString(key.getData(), success);
+    return getString(key.getCStr(), success);
 }
 
 double Object::getFloat64(const String &key, bool &success) const noexcept {
-    return getFloat64(key.getData(), success);
+    return getFloat64(key.getCStr(), success);
 }
 
 std::int64_t Object::getInt64(const String &key, bool &success) const noexcept {
-    return getInt64(key.getData(), success);
+    return getInt64(key.getCStr(), success);
 }
 
 std::uint64_t Object::getUint64(const String &key, bool &success) const noexcept {
-    return getUint64(key.getData(), success);
+    return getUint64(key.getCStr(), success);
 }
 
 Object *Object::getObject(const String &key, bool &success) noexcept {
-    return getObject(key.getData(), success);
+    return getObject(key.getCStr(), success);
 }
 
 Array *Object::getArray(const String &key, bool &success) noexcept {
-    return getArray(key.getData(), success);
+    return getArray(key.getCStr(), success);
 }
 
 std::nullptr_t Object::getNull(const String &key, bool &success) const noexcept {
-    return getNull(key.getData(), success);
+    return getNull(key.getCStr(), success);
 }
 
 bool Object::getBool(const String &key, bool &success) const noexcept {
-    return getBool(key.getData(), success);
+    return getBool(key.getCStr(), success);
 }
 
 String *Object::getString(const char *const key, bool &success) noexcept {
@@ -397,67 +397,67 @@ bool  Object::getBool(const std::string &key, GetCallback<bool> callback, Failur
 }
 
 bool Object::getString(const String &key, GetCallbackRef<String> callback) noexcept {
-    return get<String, &JSON::asString>(key.getData(), callback);  
+    return get<String, &JSON::asString>(key.getCStr(), callback);  
 }
 
 bool Object::getFloat64(const String &key, GetCallback<double> callback) const noexcept {
-    return get<double, &JSON::asFloat64>(key.getData(), callback);  
+    return get<double, &JSON::asFloat64>(key.getCStr(), callback);  
 }
 
 bool Object::getInt64(const String &key, GetCallback<std::int64_t> callback) const noexcept {
-    return get<std::int64_t, &JSON::asInt64>(key.getData(), callback);  
+    return get<std::int64_t, &JSON::asInt64>(key.getCStr(), callback);  
 }
 
 bool Object::getUint64(const String &key, GetCallback<std::uint64_t> callback) const noexcept {
-    return get<std::uint64_t, JSON::asUint64>(key.getData(), callback);  
+    return get<std::uint64_t, JSON::asUint64>(key.getCStr(), callback);  
 }
 
 bool Object::getObject(const String &key, GetCallbackRef<Object> callback) noexcept {
-    return get<Object, &JSON::asObject>(key.getData(), callback);  
+    return get<Object, &JSON::asObject>(key.getCStr(), callback);  
 }
 
 bool Object::getArray(const String &key, GetCallbackRef<Array> callback) noexcept {
-    return get<Array, &JSON::asArray>(key.getData(), callback);  
+    return get<Array, &JSON::asArray>(key.getCStr(), callback);  
 }
 
 bool Object::getNull(const String &key, GetCallback<std::nullptr_t> callback) const noexcept {
-    return get<std::nullptr_t, &JSON::asNull>(key.getData(), callback); 
+    return get<std::nullptr_t, &JSON::asNull>(key.getCStr(), callback); 
 }
 
 bool  Object::getBool(const String &key, GetCallback<bool> callback) const noexcept {
-    return get<bool, &JSON::asBool>(key.getData(), callback); 
+    return get<bool, &JSON::asBool>(key.getCStr(), callback); 
 }
 
 bool Object::getString(const String &key, GetCallbackRef<String> callback, FailureCallback failureCallback) noexcept {
-    return get<String, &JSON::asString>(key.getData(), callback, failureCallback);  
+    return get<String, &JSON::asString>(key.getCStr(), callback, failureCallback);  
 }
 
 bool Object::getFloat64(const String &key, GetCallback<double> callback, FailureCallback failureCallback) const noexcept {
-    return get<double, &JSON::asFloat64>(key.getData(), callback, failureCallback);  
+    return get<double, &JSON::asFloat64>(key.getCStr(), callback, failureCallback);  
 }
 
 bool Object::getInt64(const String &key, GetCallback<std::int64_t> callback, FailureCallback failureCallback) const noexcept {
-    return get<std::int64_t, &JSON::asInt64>(key.getData(), callback, failureCallback);  
+    return get<std::int64_t, &JSON::asInt64>(key.getCStr(), callback, failureCallback);  
 }
 
 bool Object::getUint64(const String &key, GetCallback<std::uint64_t> callback, FailureCallback failureCallback) const noexcept {
-    return get<std::uint64_t, JSON::asUint64>(key.getData(), callback, failureCallback);  
+    return get<std::uint64_t, JSON::asUint64>(key.getCStr(), callback, failureCallback);  
 }
 
 bool Object::getObject(const String &key, GetCallbackRef<Object> callback, FailureCallback failureCallback) noexcept {
-    return get<Object, &JSON::asObject>(key.getData(), callback, failureCallback);  
+    return get<Object, &JSON::asObject>(key.getCStr(), callback, failureCallback);  
 }
 
 bool Object::getArray(const String &key, GetCallbackRef<Array> callback, FailureCallback failureCallback) noexcept {
-    return get<Array, &JSON::asArray>(key.getData(), callback, failureCallback);  
+    return get<Array, &JSON::asArray>(key.getCStr(), callback, failureCallback);  
 }
 
 bool Object::getNull(const String &key, GetCallback<std::nullptr_t> callback, FailureCallback failureCallback) const noexcept {
-    return get<std::nullptr_t, &JSON::asNull>(key.getData(), callback, failureCallback); 
+    return get<std::nullptr_t, &JSON::asNull>(key.getCStr(), callback, failureCallback); 
 }
 
 bool  Object::getBool(const String &key, GetCallback<bool> callback, FailureCallback failureCallback) const noexcept {
-    return get<bool, &JSON::asBool>(key.getData(), callback, failureCallback); 
+    return get<bool, &JSON::asBool>(key.getCStr(), callback, failureCallback); 
 }
 
 bool Object::getString(const char *const key, GetCallbackRef<String> callback) noexcept {
@@ -601,47 +601,47 @@ bool Object::set(const std::string &key, const bool value) noexcept {
 }
 
 bool Object::set(const String &key, JSON &&value) noexcept {
-    return set(key.getData(), std::move(value));
+    return set(key.getCStr(), std::move(value));
 }
 
 bool Object::set(const String &key, String &&value) noexcept {
-    return set(key.getData(), std::move(value));
+    return set(key.getCStr(), std::move(value));
 }
 
 bool Object::set(const String &key, const double value) noexcept {
-    return set(key.getData(), value);
+    return set(key.getCStr(), value);
 }
 
 bool Object::set(const String &key, const int64_t value) noexcept {
-    return set(key.getData(), value);
+    return set(key.getCStr(), value);
 }
 
 bool Object::set(const String &key, const uint64_t value) noexcept {
-    return set(key.getData(), value);
+    return set(key.getCStr(), value);
 }
 
 bool Object::set(const String &key, const int value) noexcept {
-    return set(key.getData(), value);
+    return set(key.getCStr(), value);
 }
 
 bool Object::set(const String &key, const unsigned value) noexcept {
-    return set(key.getData(), value);
+    return set(key.getCStr(), value);
 }
 
 bool Object::set(const String &key, Object &&value) noexcept {
-    return set(key.getData(), std::move(value));
+    return set(key.getCStr(), std::move(value));
 }
 
 bool Object::set(const String &key, Array &&value) noexcept {
-    return set(key.getData(), std::move(value));
+    return set(key.getCStr(), std::move(value));
 }
 
 bool Object::set(const String &key, const std::nullptr_t) noexcept {
-    return set(key.getData());
+    return set(key.getCStr());
 }
 
 bool Object::set(const String &key, const bool value) noexcept {
-    return set(key.getData(), value);
+    return set(key.getCStr(), value);
 }
 
 bool Object::set(const char *const key, JSON &&value) noexcept {
@@ -767,7 +767,7 @@ Object::ValueType *Object::operator[](const std::string &key) noexcept {
 }
 
 Object::ValueType *Object::operator[](const String &key) noexcept { 
-    return this->operator[](key.getData());
+    return this->operator[](key.getCStr());
 }
 
 Object::ValueType *Object::operator[](String &&key) noexcept { 

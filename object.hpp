@@ -387,7 +387,7 @@ private:
         assert(callback != nullptr);
         assert(failureCallback != nullptr);
 
-        return get<T,method>(key.getData(), callback, failureCallback);
+        return get<T,method>(key.getCStr(), callback, failureCallback);
     }
 
     template<typename T, T(JSON::*method)(bool&) const>
@@ -403,7 +403,7 @@ private:
         assert(callback != nullptr);
         assert(failureCallback != nullptr);
 
-        return get<T,method>(key.getData(), callback, failureCallback);
+        return get<T,method>(key.getCStr(), callback, failureCallback);
     }    
 
     template<typename T, T&(JSON::*method)(bool&)>
@@ -417,7 +417,7 @@ private:
     bool get(const String &key, GetCallbackRef<T> callback) noexcept {
         assert(callback != nullptr);
 
-        return get<T,method>(key.getData(), callback);
+        return get<T,method>(key.getCStr(), callback);
     }
 
     template<typename T, T(JSON::*method)(bool&) const>
@@ -431,7 +431,7 @@ private:
     bool get(const String &key, GetCallback<T> callback) const noexcept {
         assert(callback != nullptr);
 
-        return get<T,method>(key.getData(), callback);
+        return get<T,method>(key.getCStr(), callback);
     }
 };
 
