@@ -399,6 +399,24 @@ static void testNestedArrays() {
     assert(level1->asArray(success)->size() == 3U);
     assert(success);
 
+    success = json.asArray()->getArray(0U, [](Array &array) {
+        assert(array.size() == 3U);
+    });
+    assert(success);
+    success = json.asArray()->getArray(0U, [](Array &array) {
+        assert(array.size() == 3U);
+    }, []() {
+        assert(false);
+    }); 
+    assert(success);
+    success = json.asArray()->getArray(10U, [](Array &array) {
+        (void)array;
+        assert(false);
+    }, []() {
+        assert(true);
+    });
+    assert(!success);
+
     //1
     JSON *level2 = (*level1)[0U].get();
     assert(level2 != nullptr);
