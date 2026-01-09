@@ -763,20 +763,20 @@ bool Object::set(const char *const key, const bool value) noexcept {
 }
 
 Object::ValueType *Object::operator[](const std::string &key) noexcept {
-    return this->operator[](key.c_str());
+    return (*this)[key.c_str()];
 }
 
 Object::ValueType *Object::operator[](const String &key) noexcept { 
-    return this->operator[](key.getCStr());
+    return (*this)[key.getCStr()];
 }
 
 Object::ValueType *Object::operator[](String &&key) noexcept { 
-    return this->operator[](std::move(key.getContainer()));
+    return (*this)[std::move(key.getContainer())];
 }
 
 Object::ValueType *Object::operator[](String::Container &&key) noexcept {
     try {
-        return &m_data.operator[](std::move(key));
+        return &m_data[std::move(key)];
     } catch(...) {
         return nullptr;
     }
@@ -786,7 +786,7 @@ Object::ValueType *Object::operator[](const char *const key) noexcept {
     assert(key != nullptr);
 
     try {
-        return &m_data.operator[](key);
+        return &m_data[key];
     } catch(...) {
         return nullptr;
     }

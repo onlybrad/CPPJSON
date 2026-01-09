@@ -23,11 +23,11 @@ QueryBuilder &QueryBuilder::operator[](const unsigned index) noexcept {
 }
 
 QueryBuilder &QueryBuilder::operator[](const std::string &key) noexcept {
-    return this->operator[](key.c_str());
+    return (*this)[key.c_str()];
 }
 
 QueryBuilder &QueryBuilder::operator[](const String &key) noexcept {
-    return this->operator[](key.getCStr());
+    return (*this)[key.getCStr()];
 }
 
 QueryBuilder &QueryBuilder::operator[](const char *const key) noexcept {

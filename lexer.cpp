@@ -90,9 +90,9 @@ void Lexer::skipWhitespace() noexcept {
 }
 
 Lexer::Error Lexer::tokenize(Tokens &tokens, Counters &counters) noexcept {
-    while(m_position < m_length) {
-        skipWhitespace();
+    skipWhitespace();
 
+    while(m_position < m_length) {
         Token *const token = tokens.nextToken();
         if(token == nullptr) {
             return Error::MEMORY;
@@ -168,6 +168,7 @@ Lexer::Error Lexer::tokenize(Tokens &tokens, Counters &counters) noexcept {
         }
         
         m_position += token->length;
+        skipWhitespace();
     }
 
     Token *const token = tokens.nextToken();

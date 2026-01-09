@@ -62,7 +62,7 @@ bool String::operator==(const String &str) const {
 const String &String::operator+=(const char *const str) {
     assert(str != nullptr);
 
-    m_data.operator+=(str);
+    m_data += str;
 
     return *this;
 }
@@ -70,7 +70,7 @@ const String &String::operator+=(const char *const str) {
 const String &String::operator=(const char *const str) {
     assert(str != nullptr);
 
-    m_data.operator=(str);
+    m_data = str;
 
     return *this;
 }
