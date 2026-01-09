@@ -38,25 +38,25 @@ bool String::operator==(const std::string &str) const {
 }
 
 const String &String::operator+=(const String &str) {
-    return operator+=(str.getData());
+    return operator+=(str.getCStr());
 }
 
 String &String::operator=(const String &str) {
-    operator=(str.getData());
+    operator=(str.getCStr());
 
     return *this;
 }
 
 String &String::operator=(String &&str) noexcept {
     if(this != &str) {
-        operator=(std::move(str.getData()));
+        operator=(std::move(str.getCStr()));
     }
 
     return *this;
 }
 
 bool String::operator==(const String &str) const {
-    return operator==(str.getData());
+    return operator==(str.getCStr());
 }
 
 const String &String::operator+=(const char *const str) {
@@ -103,7 +103,7 @@ void String::push(const ValueType value) {
     m_data.push_back(value);
 }
 
-const char *String::getData() const noexcept { 
+const char *String::getCStr() const noexcept { 
     return m_data.c_str(); 
 }
 

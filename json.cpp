@@ -27,7 +27,7 @@ QueryBuilder &QueryBuilder::operator[](const std::string &key) noexcept {
 }
 
 QueryBuilder &QueryBuilder::operator[](const String &key) noexcept {
-    return this->operator[](key.getData());
+    return this->operator[](key.getCStr());
 }
 
 QueryBuilder &QueryBuilder::operator[](const char *const key) noexcept {
@@ -406,14 +406,8 @@ JSON &JSON::operator=(const JSON &json) {
 }
 
 JSON &JSON::operator=(JSON &&json) noexcept {
-    if (this != &json) {
-        destructor();
-        m_type = json.m_type;
-        std::memcpy(static_cast<void*>(&m_value), &json.m_value, sizeof(m_value));
-        json.set();
-    }
+    return this->set(std::move(json));
 
-    return *this;
 }
 
 JSON::Type JSON::getType() const noexcept {
@@ -678,6 +672,8 @@ JSON &JSON::set(const std::string &value, const String::Allocator &allocator) {
 }
 
 JSON &JSON::set(const char *const value, const String::Allocator &allocator) {
+    assert(value != nullptr);
+
     if(m_type != Type::STRING) {
         destructor();
         new (&m_value.string) String(allocator);
@@ -689,11 +685,18 @@ JSON &JSON::set(const char *const value, const String::Allocator &allocator) {
 }
 
 JSON &JSON::set(const String &value) {
-    return set(value.getData(), value.getAllocator());
+    return set(value.getCStr(), value.getAllocator());
 }
 
 JSON &JSON::set(JSON &&value) {
-    return this->operator=(std::move(value));
+    if (this != &value) {
+        destructor();
+        m_type = value.m_type;
+        std::memcpy(static_cast<void*>(&m_value), &value.m_value, sizeof(m_value));
+        value.set();
+    }
+
+    return *this;
 }
 
 JSON &JSON::set(String &&value) {
