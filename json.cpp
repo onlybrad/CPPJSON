@@ -249,8 +249,8 @@ double JSON::as<double, JSON::Type::FLOAT64, nullptr>(bool &success) const noexc
 
 template<>
 std::int64_t JSON::as<std::int64_t, JSON::Type::INT64, nullptr>(bool &success) const noexcept {
-    constexpr double minInt64d = static_cast<double>(std::numeric_limits<std::uint64_t>().min());
-    constexpr double maxInt64d = static_cast<double>(std::numeric_limits<std::uint64_t>().max());
+    constexpr double minInt64d = static_cast<double>(std::numeric_limits<std::int64_t>().min());
+    constexpr double maxInt64d = static_cast<double>(std::numeric_limits<std::int64_t>().max());
     constexpr std::uint64_t maxInt64u = static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>().max());
 
     switch(m_type) {    
