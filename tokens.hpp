@@ -12,7 +12,7 @@ class Parser;
 class Lexer;
 
 struct Tokens {
-    static constexpr unsigned MINIMUM_CAPACITY = 8U;
+    static const unsigned MINIMUM_CAPACITY;
 
     typedef GeneralAllocator<Token>       Allocator;
     typedef std::vector<Token, Allocator> Container;
@@ -26,9 +26,9 @@ struct Tokens {
     Tokens& operator=(const Tokens&)          = delete;
     Tokens& operator=(Tokens&&)      noexcept = default;
 
-    bool   reserve     (unsigned capacity = 0U) noexcept;
-    void   reset       ()                       noexcept;
-    Token *nextToken()                          noexcept;
+    bool   reserve  (unsigned capacity = 0U) noexcept;
+    void   reset    ()                       noexcept;
+    Token *nextToken()                       noexcept;
 };
 
 }

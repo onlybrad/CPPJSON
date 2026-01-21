@@ -15,7 +15,7 @@ class ArenaNode {
     ArenaNode *next   = nullptr;
     unsigned   size   = 0U,
                offset = 0U;
-    //unsigned   data[];  use getData() to get a pointer to the hidden data
+    //unsigned char data[];  use getData() to get a pointer to the hidden data
 
     ArenaNode(unsigned size)               noexcept;
     ArenaNode(const ArenaNode&)                     = delete;
@@ -23,8 +23,8 @@ class ArenaNode {
     ArenaNode &operator=(const ArenaNode&)          = delete;
     ArenaNode &operator=(ArenaNode&&)      noexcept = delete;
 
-    static ArenaNode *create       (unsigned size)             noexcept;
-    unsigned char    *getData      ()                    const noexcept;
+    static ArenaNode *create (unsigned size)       noexcept;
+    unsigned char    *getData()              const noexcept;
 };
 
 class Arena {
@@ -39,12 +39,13 @@ class Arena {
     bool createNextNode(unsigned objectSize);
 
 public:
-    static const unsigned MINIMUM_SIZE;
+    static const unsigned MINIMUM_CAPACITY;
     static const unsigned INFINITE_NODES;
 
     Arena()                                                    noexcept = default;
     ~Arena()                                                   noexcept;
     Arena(const Arena&)                                                 = delete;
+    Arena(unsigned size, unsigned maxNodes, const char *name);
     Arena(Arena&&)                                             noexcept = delete;
     Arena &operator=(const Arena&)                                      = delete;
     Arena &operator=(Arena&&)                                  noexcept = delete;
@@ -63,16 +64,16 @@ template<typename T>
 bool Arena::reserve(const unsigned count) noexcept {
     assert(count > 0U);
 
-    bool success;
-    const unsigned totalSize = Util::safeMult(count, static_cast<unsigned>(sizeof(T)), success);
-    if(!success) {
+    const Result<unsigned> multResult = Util::safeMult(count, static_cast<unsigned>(sizeof(T)));
+    if(!multResult.isSuccess()) {
         return false;
     }
+    const unsigned totalSize = multResult.getValue();
 
-    const std::uintptr_t alignment       = static_cast<std::uintptr_t>(alignof(T));
-    const std::uintptr_t start_address   = reinterpret_cast<std::uintptr_t>(m_current->getData() + m_current->offset);
-    std::uintptr_t       aligned_address = (start_address + (alignment - 1U)) & ~(alignment - 1U);
-    unsigned             padding         = static_cast<unsigned>(aligned_address - start_address);
+    const std::uintptr_t alignment      = static_cast<std::uintptr_t>(alignof(T)),
+                         startAddress   = reinterpret_cast<std::uintptr_t>(m_current->getData() + m_current->offset),
+                         alignedAddress = (startAddress + (alignment - 1U)) & ~(alignment - 1U);
+    unsigned             padding        = static_cast<unsigned>(alignedAddress - startAddress);
 
     if(m_current->offset + padding + totalSize <= m_current->size) {
         return true;
@@ -85,30 +86,29 @@ template<typename T>
 T *Arena::alloc(const unsigned count) noexcept {
     assert(count > 0U);
 
-    bool success;
-    const unsigned totalSize = Util::safeMult(count, static_cast<unsigned>(sizeof(T)), success);
-    if(!success) {
+    const Result<unsigned> multResult = Util::safeMult(count, static_cast<unsigned>(sizeof(T)));
+    if(!multResult.isSuccess()) {
         return nullptr;
     }
+    const unsigned totalSize = multResult.getValue();
 
-    const std::uintptr_t alignment       = static_cast<std::uintptr_t>(alignof(T));
-    const std::uintptr_t start_address   = reinterpret_cast<std::uintptr_t>(m_current->getData() + m_current->offset);
-    std::uintptr_t       aligned_address = (start_address + (alignment - 1U)) & ~(alignment - 1U);
-    unsigned             padding         = static_cast<unsigned>(aligned_address - start_address);
+    const std::uintptr_t alignment      = static_cast<std::uintptr_t>(alignof(T));
+    const std::uintptr_t startAddress   = reinterpret_cast<std::uintptr_t>(m_current->getData() + m_current->offset);
+    std::uintptr_t       alignedAddress = (startAddress + (alignment - 1U)) & ~(alignment - 1U);
+    unsigned             padding        = static_cast<unsigned>(alignedAddress - startAddress);
 
     if(m_current->offset + padding + totalSize > m_current->size) {
         if(!createNextNode(totalSize)) {
             return nullptr;
         }
 
-        aligned_address = reinterpret_cast<std::uintptr_t>(m_current->getData());
-        padding         = 0U;
+        alignedAddress = reinterpret_cast<std::uintptr_t>(m_current->getData());
+        padding        = 0U;
     }
 
     m_current->offset += padding + totalSize;
 
-    return reinterpret_cast<T*>(aligned_address);
+    return reinterpret_cast<T*>(alignedAddress);
 }
-
 
 }

@@ -10,7 +10,7 @@
 
 namespace CPPJSON {
 
-bool Parser::parseToken(JSON &json, Tokens &tokens) noexcept {
+Error Parser::parseToken(JSON &json, Tokens &tokens) noexcept {
     switch(tokens.currentToken->type) {
     case Token::Type::STRING: 
         return parseString(json, tokens);
@@ -22,11 +22,11 @@ bool Parser::parseToken(JSON &json, Tokens &tokens) noexcept {
     
     case Token::Type::BOOL: 
         parseBool(json, tokens);
-        return true;
+        return Error::NONE;
     
     case Token::Type::NUL: 
         parseNull(json, tokens);
-        return true;
+        return Error::NONE;
     
     case Token::Type::LBRACKET: 
         return parseArray(json, tokens);
@@ -40,10 +40,10 @@ bool Parser::parseToken(JSON &json, Tokens &tokens) noexcept {
     case Token::Type::RCURLY:
     case Token::Type::INVALID:
     case Token::Type::DONE:
-        json.set(JSON::Error::TOKEN);
+        return Error::TOKEN;
     }
 
-    return false;
+    return Error::NONE;
 }
 
 bool Parser::decodeStringToken(String &str, Token &token) noexcept {
@@ -159,26 +159,25 @@ bool Parser::decodeStringToken(String &str, Token &token) noexcept {
     return !escaping;
 }
 
-bool Parser::parseString(JSON &json, Tokens &tokens) noexcept {
+Error Parser::parseString(JSON &json, Tokens &tokens) noexcept {
     assert(tokens.currentToken != nullptr);
 
-    String *const string = json.makeString(getStringAllocator()); 
-    assert(string != nullptr);
-    if(!string->reserve(tokens.currentToken->length - 1U)) {
-        json.set(JSON::Error::MEMORY);
-        return false;
+    Result<String&> stringResult = json.makeString(getStringAllocator()); 
+    assert(stringResult.isSuccess());
+    String &string = stringResult.getRef();
+    if(!string.reserve(tokens.currentToken->length - 1U)) {
+        return Error::MEMORY;
     }
 
-    if(!decodeStringToken(*string, *tokens.currentToken)) {
-        json.set(JSON::Error::STRING);
-        return false;
+    if(!decodeStringToken(string, *tokens.currentToken)) {
+        return Error::STRING;
     }
 
     tokens.currentToken++;
-    return true;
+    return Error::NONE;
 }
 
-bool Parser::parseArray(JSON &json, Tokens &tokens) noexcept {
+Error Parser::parseArray(JSON &json, Tokens &tokens) noexcept {
     assert(tokens.currentToken != nullptr);
     
     const unsigned length = tokens.currentToken->length;
@@ -187,32 +186,30 @@ bool Parser::parseArray(JSON &json, Tokens &tokens) noexcept {
 
     const Token *const lastToken = tokens.data.data() + tokens.data.size() - 1;
     if(tokens.currentToken == lastToken) {
-        json.set(JSON::Error::ARRAY);
-        return false;
+        return Error::ARRAY;
     }
     
-    Array *const array = json.makeArray(getArrayAllocator());
-    assert(array != nullptr);
-    if(!array->reserve(length)) {
-        json.set(JSON::Error::MEMORY);
-        return false;
+    const Result<Array&> arrayResult = json.makeArray(getArrayAllocator());
+    assert(arrayResult.isSuccess());
+    Array &array = arrayResult.getRef();
+    if(!array.reserve(length)) {
+        return Error::MEMORY;
     }
 
     if(tokens.currentToken->type == Token::Type::RBRACKET) {
         tokens.currentToken++;
-        return true;
+        return Error::NONE;
     }
 
     while(lastToken - tokens.currentToken >= 2) {
-        array->push();
-        JSON &nextJson = array->unsafeBack();
-        if(!parseToken(nextJson, tokens)) {
-            if(nextJson.m_value.error == JSON::Error::TOKEN) {
-                json.set(JSON::Error::ARRAY_VALUE);
-            } else {
-                json.set(nextJson.m_value.error);
-            }
-            return false;
+        array.push();
+        JSON &nextJSON = array.unsafeBack();
+        const Error error = parseToken(nextJSON, tokens);
+        if(error == Error::TOKEN) {
+            return Error::ARRAY_VALUE;
+        } 
+        if(error != Error::NONE) {
+            return error;
         }
 
         if(tokens.currentToken->type == Token::Type::COMMA) {
@@ -222,18 +219,16 @@ bool Parser::parseArray(JSON &json, Tokens &tokens) noexcept {
 
         if(tokens.currentToken->type == Token::Type::RBRACKET) {
             tokens.currentToken++;
-            return true;
+            return Error::NONE;
         }
 
-        json.set(JSON::Error::MISSING_COMMA_OR_RCURLY);
-        return false;
+        return Error::MISSING_COMMA_OR_RBRACKET;
     }
 
-    json.set(JSON::Error::ARRAY);
-    return false;
+    return Error::ARRAY;
 }
 
-bool Parser::parseObject(JSON &json, Tokens &tokens) noexcept {
+Error Parser::parseObject(JSON &json, Tokens &tokens) noexcept {
     assert(tokens.currentToken != nullptr);
 
     const unsigned length = tokens.currentToken->length;
@@ -243,52 +238,46 @@ bool Parser::parseObject(JSON &json, Tokens &tokens) noexcept {
     
     const Token *const lastToken = tokens.data.data() + tokens.data.size() - 1;
     if(tokens.currentToken == lastToken) {
-        json.set(JSON::Error::OBJECT);
-        return false;
+        return Error::OBJECT;
     }
 
-    Object *const object = json.makeObject(getObjectAllocator());
-    assert(object != nullptr);
-    if(!object->reserve(length)) {
-        json.set(JSON::Error::MEMORY);
-        return false;
+    Result<Object&> objectResult = json.makeObject(getObjectAllocator());
+    assert(objectResult.isSuccess());
+    Object &object = objectResult.getRef();
+    if(!object.reserve(length)) {
+        return Error::MEMORY;
     }
 
     if(tokens.currentToken->type == Token::Type::RCURLY) {
         tokens.currentToken++;
-        return true;
+        return Error::NONE;
     }
 
     while(lastToken - tokens.currentToken >= 4) {
         if(tokens.currentToken->type != Token::Type::STRING) {
-            json.set(JSON::Error::OBJECT_KEY);
-            return false;
+            return Error::OBJECT_KEY;
         }
 
         String key(getStringAllocator());
         if(!decodeStringToken(key, *tokens.currentToken)) {
-            json.set(JSON::Error::OBJECT_KEY);
-            return false;
+            return Error::OBJECT_KEY;
         }
 
         tokens.currentToken++;
     
         if(tokens.currentToken->type != Token::Type::COLON) {
-            json.set(JSON::Error::MISSING_COLON);
-            return false;
+            return Error::MISSING_COLON;
         }
 
         tokens.currentToken++;
 
-        JSON *nextJson = (*object)[std::move(key.getContainer())];
-        assert(nextJson != nullptr);
-        if(!parseToken(*nextJson, tokens)) {
-            if(nextJson->m_value.error == JSON::Error::TOKEN) {
-                json.set(JSON::Error::OBJECT_VALUE);
-            } else {
-                json.set(nextJson->m_value.error);
-            }
-            return false;
+        JSON &nextJSON = object[std::move(key)];
+        const Error error = parseToken(nextJSON, tokens);
+        if(error == Error::TOKEN) {
+            return Error::OBJECT_VALUE;
+        }
+        if(error != Error::NONE) {
+            return error;
         }
 
         if(tokens.currentToken->type == Token::Type::COMMA) {
@@ -298,18 +287,16 @@ bool Parser::parseObject(JSON &json, Tokens &tokens) noexcept {
 
         if(tokens.currentToken->type == Token::Type::RCURLY) {
             tokens.currentToken++;
-            return true;
+            return Error::NONE;
         }
 
-        json.set(JSON::Error::MISSING_COMMA_OR_RCURLY);
-        return false;
+        return Error::MISSING_COMMA_OR_RCURLY;
     }
     
-    json.set(JSON::Error::OBJECT);
-    return false;
+    return Error::OBJECT;
 }
 
-bool Parser::parseNumber(JSON &json, Tokens &tokens) noexcept {
+Error Parser::parseNumber(JSON &json, Tokens &tokens) noexcept {
     assert(tokens.currentToken != nullptr);
 
     bool success;
@@ -317,7 +304,7 @@ bool Parser::parseNumber(JSON &json, Tokens &tokens) noexcept {
 
     Token &token = *tokens.currentToken;
     if(static_cast<std::size_t>(token.length) >= sizeof(number)) {
-        return false;
+        return Error::TOO_LARGE;
     }
 
     std::memcpy(number, token.value, static_cast<size_t>(token.length));
@@ -325,8 +312,7 @@ bool Parser::parseNumber(JSON &json, Tokens &tokens) noexcept {
     if(token.type == Token::Type::FLOAT) {
         const double value = Util::parseFloat64(number, success);
         if(!success) {
-            json.set(JSON::Error::FLOAT64);
-            return false;
+            return Error::FLOAT64;
         }
         json.set(value);
     } else if(number[0] == '-') {
@@ -336,37 +322,33 @@ bool Parser::parseNumber(JSON &json, Tokens &tokens) noexcept {
             || value < static_cast<long double>(std::numeric_limits<std::int64_t>::min()) 
             || value > static_cast<long double>(std::numeric_limits<std::int64_t>::max())
             ){
-                json.set(JSON::Error::INT64);
-                return false;
+                return Error::INT64;
             }
             json.set(static_cast<std::int64_t>(value));
         } else {
             const std::int64_t value = Util::parseInt64(number, success);
             if(!success) {
-                json.set(JSON::Error::INT64);
-                return false; 
+                return Error::INT64;
             }
             json.set(value);
         }
     } else if(token.type == Token::Type::SCIENTIFIC_INT) {
         const long double value = Util::parseLongDouble(number, success);
         if(!success || value > static_cast<long double>(std::numeric_limits<std::uint64_t>::max())) {
-            json.set(JSON::Error::UINT64);
-            return false;
+            return Error::UINT64;
         }
         json.set(static_cast<std::uint64_t>(value));
     } else {
         const uint64_t value = Util::parseUint64(number, success);
         if(!success) {
-            json.set(JSON::Error::UINT64);
-            return false;
+            return Error::UINT64;
         }
         json.set(value);
     }
 
     tokens.currentToken++;
     
-    return true;
+    return Error::NONE;
 }
 
 void Parser::parseNull(JSON &json, Tokens &tokens) noexcept {
@@ -385,196 +367,148 @@ void Parser::parseBool(JSON &json, Tokens &tokens) noexcept {
 
 Parser::Parser() noexcept {}
 
-Parser::~Parser() noexcept {}
+Parser::~Parser() noexcept {
+    for(RootNode *current = m_firstRoot; current != nullptr; current = current->next) {
+        current->json.~JSON();
+    }
+}
 
-JSON &Parser::init() noexcept {
+ParserResult Parser::init() noexcept {
     if(m_arenas == nullptr) {
-        const std::array<unsigned, 3> arenaSizes = {0U, 0U, 0U};
+        const ArenaSizes arenaSizes = {0U, 0U, 0U, 0U};
         if(!initArenas(arenaSizes, Arena::INFINITE_NODES)) {
-            m_json.set(JSON::Error::MEMORY);
+            return ParserResult::fromError(Error::MEMORY);
         }
     }
 
-    return m_json;
+    RootNode *const rootNode = newRootNode();
+    if(rootNode == nullptr) {
+        return ParserResult::fromError(Error::MEMORY);
+    }
+
+    return ParserResult::fromRef(rootNode->json);
 }
 
-JSON &Parser::parse(const std::string &data) noexcept {
+ParserResult Parser::parse(const std::string &data) noexcept {
     assert(data[0] != '\0');
 
     if(data.size() >= static_cast<std::size_t>(std::numeric_limits<unsigned>::max())) {
-        m_json.set(JSON::Error::TOO_LARGE);
-        return m_json;
+        return ParserResult::fromError(Error::TOO_LARGE);
     }
 
     return parse(data.c_str(), static_cast<unsigned>(data.size()));
 }
 
-JSON &Parser::parse(const char *const data) noexcept {
+ParserResult Parser::parse(const char *const data) noexcept {
     assert(data != nullptr);
     assert(data[0] != '\0');
 
     const size_t length = std::strlen(data);
     if(length >= static_cast<std::size_t>(std::numeric_limits<unsigned>::max())) {
-        m_json.set(JSON::Error::TOO_LARGE);
-        return m_json;
+        return ParserResult::fromError(Error::TOO_LARGE);
     }
 
     return parse(data, static_cast<unsigned>(length));
 }
 
-JSON &Parser::parse(const char *const data, const unsigned length) noexcept {
+ParserResult Parser::parse(const char *const data, const unsigned length) noexcept {
     assert(data != nullptr);
     assert(length > 0);
 
-    if(m_arenas != nullptr) {
-        m_tokens.reset();
-    }
-
-    if(!m_tokens.reserve(length / 2U)) {
-        m_json.set(JSON::Error::MEMORY);
-        return m_json;
+    Tokens tokens;
+    if(!tokens.reserve(length / 2U)) {
+        return ParserResult::fromError(Error::MEMORY);
     }
     
     Lexer lexer(data, length);
-    const Lexer::Error error = lexer.tokenize(m_tokens, m_counters);
-    if(error == Lexer::Error::TOKEN) {
-        m_json.set(JSON::Error::TOKEN);
-        return m_json;
+    Counters counters;
+    const Lexer::Error lexerError = lexer.tokenize(tokens, counters);
+    if(lexerError == Lexer::Error::TOKEN) {
+        return ParserResult::fromError(Error::TOKEN);
     }
-    if(error == Lexer::Error::MEMORY) {
-        m_json.set(JSON::Error::MEMORY);
-        return m_json;
+    if(lexerError == Lexer::Error::MEMORY) {
+        return ParserResult::fromError(Error::MEMORY);
     }
 
     if(m_arenas != nullptr) {
-        const std::array<unsigned, 3> arenaCounts = {
-            m_counters.object_elements,
-            m_counters.array_elements,
-            m_counters.chars          
+        const ArenaSizes arenaCounts = {
+            counters.object_elements,
+            counters.array_elements,
+            counters.chars,
+            0U       
         };
 
         if(!reserveArenas(arenaCounts)) {
-            m_json.set(JSON::Error::MEMORY);
-            return m_json;
+            return ParserResult::fromError(Error::MEMORY);
         }
     } else {
-        bool success;
-        const unsigned objectSizes = Util::safeMult(
-            m_counters.object_elements,
-            static_cast<unsigned>(sizeof(Object::ContainerType)),
-            success
+        Result<unsigned> result = Util::safeMult(
+            counters.object_elements,
+            static_cast<unsigned>(sizeof(Object::ContainerType))
         );
-        if(!success) {
-            m_json.set(JSON::Error::TOO_LARGE);
-            return m_json;
+        if(!result.isSuccess()) {
+            return ParserResult::fromError(Error::TOO_LARGE);
         }
+        const unsigned objectSizes = result.getValue();
 
-        const unsigned arraySizes = Util::safeMult(
-            m_counters.array_elements,
-            static_cast<unsigned>(sizeof(Array::ContainerType)),
-            success
+        result = Util::safeMult(
+            counters.array_elements,
+            static_cast<unsigned>(sizeof(Array::ContainerType))
         );
-        if(!success) {
-            m_json.set(JSON::Error::TOO_LARGE);
-            return m_json;
+        if(!result.isSuccess()) {
+            return ParserResult::fromError(Error::TOO_LARGE);
         }
+        const unsigned arraySizes = result.getValue();
 
-        const unsigned stringSizes = Util::safeMult(
-            m_counters.chars,
-            static_cast<unsigned>(sizeof(String::ContainerType)),
-            success
+        result = Util::safeMult(
+            counters.chars,
+            static_cast<unsigned>(sizeof(String::ContainerType))
         );
-        if(!success) {
-            m_json.set(JSON::Error::TOO_LARGE);
-            return m_json;
+        if(!result.isSuccess()) {
+            return ParserResult::fromError(Error::TOO_LARGE);
         }
+        const unsigned stringSizes = result.getValue();
 
-        const std::array<unsigned, 3> arenaSizes = {objectSizes, arraySizes, stringSizes};
-        
+        const ArenaSizes arenaSizes = {objectSizes, arraySizes, stringSizes, 0U};
         if(!initArenas(arenaSizes, Arena::INFINITE_NODES)) {
-            m_json.set(JSON::Error::MEMORY);
-            return m_json;
+            return ParserResult::fromError(Error::MEMORY);
         }
     }
 
-    parseToken(m_json, m_tokens);
-    return m_json;
+    RootNode *const rootNode = newRootNode();
+    if(rootNode == nullptr) {
+        return ParserResult::fromError(Error::MEMORY);
+    }
+
+    const Error error = parseToken(rootNode->json, tokens);
+    if(error != Error::NONE) {
+        return ParserResult::fromError(error);
+    }
+    
+    return ParserResult::fromRef(rootNode->json);
 }
 
-JSON &Parser::parseFile(const std::string &path) noexcept {
+ParserResult Parser::parseFile(const std::string &path) noexcept {
     assert(path[0] != '\0');
 
     return parseFile(path.c_str());
 }
 
-JSON &Parser::parseFile(const char *const path) noexcept {
+ParserResult Parser::parseFile(const char *const path) noexcept {
     assert(path != nullptr);
     assert(path[0] != '\0');
 
     FileContents fileContents = FileContents::get(path);
     if(fileContents.getError() != FileContents::Error::NONE) {
-        m_json.set(JSON::Error::FILE);
-        return m_json;
+        return ParserResult::fromError(Error::FILE);
     }
 
     return parse(reinterpret_cast<const char*>(fileContents.getData()), fileContents.getLength());
 }
 
-const char *Parser::getError() noexcept {
-    switch(m_json.m_value.error) {
-    case JSON::Error::NONE:
-        return "No Error.";
-    case JSON::Error::TOKEN:
-        return "Token error.";
-    case JSON::Error::STRING:
-        return "String failed to parse.";
-    case JSON::Error::FLOAT64:
-        return "Float64 failed to parse.";
-    case JSON::Error::INT64:
-        return "Int64 failed to parse.";
-    case JSON::Error::UINT64:
-        return "Uint64 failed to parse.";
-    case JSON::Error::OBJECT:
-        return "Object failed to parse.";
-    case JSON::Error::OBJECT_KEY:
-        return "Object invalid key.";
-    case JSON::Error::OBJECT_VALUE:
-        return "Object invalid value.";
-    case JSON::Error::MISSING_COLON:
-        return "Object missing colon.";
-    case JSON::Error::MISSING_COMMA_OR_RCURLY:
-        return "Missing comma or right curly bracket.";
-    case JSON::Error::ARRAY:
-        return "Array failed to parse.";
-    case JSON::Error::ARRAY_VALUE:
-        return "Array invalid value.";
-    case JSON::Error::FILE:
-        return "Failed to open file.";
-    case JSON::Error::MEMORY:
-        return "Failed to allocate memory.";
-    case JSON::Error::TOO_LARGE:
-        return "File or string too large. Maximum supported is UINT_MAX.";
-    }
-
-    return nullptr;
-}
-
-void Parser::deallocateArenas(Arenas *const arenas) noexcept {
-    assert(arenas != nullptr);
-
-    arenas->object.~Arena();
-    arenas->array.~Arena();
-    arenas->string.~Arena();
-
-    Allocator::s_deallocate(arenas);
-}
-
 bool Parser::allocateArenas() noexcept {
     try {
-        Arenas *const arenas = new (GeneralAllocator<Arenas>::s_allocate(1U)) Arenas();
-        new (&arenas->object) Arena();
-        new (&arenas->array) Arena();
-        new (&arenas->string) Arena();
+        Arenas *const arenas = new (ArenasAllocator::s_allocate(1U)) Arenas();
         m_arenas.reset(arenas);
         return true;
     } catch(...) {
@@ -582,20 +516,45 @@ bool Parser::allocateArenas() noexcept {
     }
 }
 
-bool Parser::initArenas(const std::array<unsigned, 3> arenaSizes, const unsigned maxNodes) noexcept {
+void Parser::deallocateArenas(Arenas *const arenas) noexcept {
+    arenas->string.~Arena();
+    arenas->object.~Arena();
+    arenas->array.~Arena();
+    arenas->root.~Arena();
+
+    ArenasAllocator::s_deallocate(arenas);
+}
+
+Parser::RootNode *Parser::newRootNode() noexcept {
+    assert(m_arenas != nullptr);
+
+    RootNode *const rootNode = new (m_arenas->root.alloc<RootNode>(1U)) RootNode();
+    if(rootNode == nullptr) {
+        return nullptr;
+    }
+
+    if(m_currentRoot != nullptr) {
+        m_currentRoot->next = rootNode;
+    }
+    m_currentRoot = rootNode;
+
+    return rootNode;
+}
+
+bool Parser::initArenas(const ArenaSizes arenaSizes, const unsigned maxNodes) noexcept {
     assert(m_arenas == nullptr);
 
     if(!allocateArenas()) {
         return false;
     }
 
-    struct ArenaData {
+    struct ArenaDatum {
         const char    *name;
         Arena         *arena;
         const unsigned containerSize;
     };
 
-    const std::array<ArenaData, 3> arenaData = {{
+    const std::array<ArenaDatum, arenaSizes.size()> arenaData = {{
         {
             "Object Arena",
             &m_arenas->object,
@@ -610,14 +569,19 @@ bool Parser::initArenas(const std::array<unsigned, 3> arenaSizes, const unsigned
             "String Arena",
             &m_arenas->string,
             static_cast<unsigned>(sizeof(String::ContainerType))
+        },
+        {
+            "JSON Nodes Arena",
+            &m_arenas->root,
+            static_cast<unsigned>(sizeof(RootNode))
         }
     }};
 
     int index = 0;
     for(auto &arenaDatum : arenaData) {
-        assert(!Util::checkMultOverflow(Arena::MINIMUM_SIZE, arenaDatum.containerSize));
+        assert(!Util::checkMultOverflow(Arena::MINIMUM_CAPACITY, arenaDatum.containerSize));
 
-        const unsigned arenaSize = std::max(arenaSizes[index], Arena::MINIMUM_SIZE * arenaDatum.containerSize);
+        const unsigned arenaSize = std::max(arenaSizes[index], Arena::MINIMUM_CAPACITY * arenaDatum.containerSize);
         if(!arenaDatum.arena->init(arenaSize, maxNodes, arenaDatum.name)) {
             return false;
         }
@@ -627,16 +591,21 @@ bool Parser::initArenas(const std::array<unsigned, 3> arenaSizes, const unsigned
     return true;
 }
 
-bool Parser::reserveArenas(const std::array<unsigned, 3> arenaCounts) noexcept {
+bool Parser::reserveArenas(const ArenaSizes arenaCounts) noexcept {
     assert(m_arenas != nullptr);
 
-    if(!m_arenas->object.reserve<Object::ContainerType>(std::max(arenaCounts[0], Arena::MINIMUM_SIZE))) {
+    int i = 0;
+
+    if(!m_arenas->object.reserve<Object::ContainerType>(std::max(arenaCounts[i++], Arena::MINIMUM_CAPACITY))) {
         return false;
     }
-    if(!m_arenas->array.reserve<Array::ContainerType>(std::max(arenaCounts[1], Arena::MINIMUM_SIZE))) {
+    if(!m_arenas->array.reserve<Array::ContainerType>(std::max(arenaCounts[i++], Arena::MINIMUM_CAPACITY))) {
         return false;
     }
-    if(!m_arenas->string.reserve<String::ContainerType>(std::max(arenaCounts[2], Arena::MINIMUM_SIZE))) {
+    if(!m_arenas->string.reserve<String::ContainerType>(std::max(arenaCounts[i++], Arena::MINIMUM_CAPACITY))) {
+        return false;
+    }
+    if(!m_arenas->root.reserve<RootNode>(std::max(arenaCounts[i++], Arena::MINIMUM_CAPACITY))) {
         return false;
     }
 
@@ -653,6 +622,16 @@ Array::Allocator Parser::getArrayAllocator() noexcept {
 
 String::Allocator Parser::getStringAllocator() noexcept {
     return String::Allocator(&m_arenas->string);
+}
+
+String Parser::createString(const std::string &key) { 
+    return createString(key.c_str());
+}
+
+String Parser::createString(const char *const key) { 
+    String string(getStringAllocator());
+    string = key;
+    return string;
 }
 
 }

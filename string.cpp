@@ -15,6 +15,10 @@ String::String(Allocator &&allocator) noexcept :
 m_data(std::move(allocator)) 
 {}
 
+String::String(const String &string) :
+m_data(string.m_data)
+{}
+
 String::~String() noexcept {}
 
 String::ValueType &String::operator[](const unsigned index) noexcept {
@@ -38,25 +42,25 @@ bool String::operator==(const std::string &str) const {
 }
 
 const String &String::operator+=(const String &str) {
-    return operator+=(str.getCStr());
+    return operator+=(str.getCString());
 }
 
 String &String::operator=(const String &str) {
-    operator=(str.getCStr());
+    operator=(str.getCString());
 
     return *this;
 }
 
 String &String::operator=(String &&str) noexcept {
     if(this != &str) {
-        operator=(std::move(str.getCStr()));
+        m_data = std::move(str.m_data);
     }
 
     return *this;
 }
 
 bool String::operator==(const String &str) const {
-    return operator==(str.getCStr());
+    return this == &str || (*this)==(str.getCString());
 }
 
 const String &String::operator+=(const char *const str) {
@@ -103,16 +107,24 @@ void String::push(const ValueType value) {
     m_data.push_back(value);
 }
 
-const char *String::getCStr() const noexcept { 
+const char *String::getCString() const noexcept { 
     return m_data.c_str(); 
-}
-
-String::Container &String::getContainer() noexcept {
-    return m_data;
 }
 
 String::Allocator String::getAllocator() const noexcept { 
     return m_data.get_allocator();
+}
+
+void String::destructor() noexcept {
+    m_data.~Container();
+}
+
+String::const_iterator String::begin() const noexcept {
+    return m_data.begin();
+}
+
+String::const_iterator String::end() const noexcept {
+    return m_data.end();
 }
 
 }

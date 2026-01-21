@@ -3,10 +3,38 @@
 #include <cassert>
 #include <unordered_map>
 #include <cstdint>
-#include <functional>
 
 #include "allocator.hpp"
 #include "string.hpp"
+#include "result.hpp"
+
+template<>
+struct std::hash<CPPJSON::String> {
+    std::size_t operator()(const CPPJSON::String &string) const noexcept {
+        assert(string.size() <= static_cast<std::size_t>(std::numeric_limits<unsigned>().max()));
+
+        unsigned h = 0U;
+
+        for(const CPPJSON::String::ContainerType c : string) {
+            h += static_cast<unsigned>(c);
+            h += h << 10;
+            h ^= h >> 6;
+        }
+
+        h += h << 3;
+        h ^= h >> 11;
+        h += h << 15;
+
+        return h;
+    }
+};
+
+template<>
+struct std::equal_to<CPPJSON::String> {
+    bool operator()(const CPPJSON::String& lhs, const CPPJSON::String& rhs) const {
+        return lhs == rhs;
+    }
+};
 
 namespace CPPJSON {
 
@@ -16,20 +44,13 @@ class Array;
 
 class Object {
 
-template<typename T>
-using GetCallbackRef = std::function<void(T&)>;
-
-template<typename T>
-using GetCallback = std::function<void(T)>;
-
-typedef std::function<void()> FailureCallback;
-
 public:
-    typedef String::Container                   KeyType;
+    typedef String                              KeyType;
     typedef JSON                                ValueType;
     typedef std::pair<const KeyType, ValueType> KeyValueType;
     typedef KeyValueType                        ContainerType;
     typedef ArenaAllocator<ContainerType>       Allocator;
+    typedef ArenaAllocator<KeyType>             KeyAllocator;
     typedef std::unordered_map<
         KeyType,
         ValueType,
@@ -37,7 +58,10 @@ public:
         std::equal_to<KeyType>,
         Allocator
     > Container;
-   
+
+    typedef Container::iterator       iterator;
+    typedef Container::const_iterator const_iterator;
+
     static const unsigned MINIMUM_CAPACITY; 
     
     Object(const Allocator&);
@@ -47,391 +71,244 @@ public:
     ~Object()                        noexcept;
     Object &operator=(const Object&);
     Object &operator=(Object&&)      noexcept;
-
-    bool           reserve(unsigned capacity = 0U) noexcept;
-
-    ValueType       *get(const std::string&)      noexcept;
-    ValueType       *get(const String&)           noexcept;
-    ValueType       *get(const char *const)       noexcept;
-    const ValueType *get(const char *const) const noexcept;
-
-    void           remove(const std::string&) noexcept;
-    void           remove(const String&)      noexcept;
-    void           remove(const char *const)  noexcept;
-
-    String        *getString (const std::string&, bool &success)       noexcept;
-    double         getFloat64(const std::string&, bool &success) const noexcept;
-    std::int64_t   getInt64  (const std::string&, bool &success) const noexcept;
-    std::uint64_t  getUint64 (const std::string&, bool &success) const noexcept;
-    Object        *getObject (const std::string&, bool &success)       noexcept;
-    Array         *getArray  (const std::string&, bool &success)       noexcept;
-    std::nullptr_t getNull   (const std::string&, bool &success) const noexcept;
-    bool           getBool   (const std::string&, bool &success) const noexcept;
-
-    String        *getString (const String&, bool &success)       noexcept;
-    double         getFloat64(const String&, bool &success) const noexcept;
-    std::int64_t   getInt64  (const String&, bool &success) const noexcept;
-    std::uint64_t  getUint64 (const String&, bool &success) const noexcept;
-    Object        *getObject (const String&, bool &success)       noexcept;
-    Array         *getArray  (const String&, bool &success)       noexcept;
-    std::nullptr_t getNull   (const String&, bool &success) const noexcept;
-    bool           getBool   (const String&, bool &success) const noexcept;
     
-    String        *getString (const char*, bool &success)       noexcept;
-    double         getFloat64(const char*, bool &success) const noexcept;
-    std::int64_t   getInt64  (const char*, bool &success) const noexcept;
-    std::uint64_t  getUint64 (const char*, bool &success) const noexcept;
-    Object        *getObject (const char*, bool &success)       noexcept;
-    Array         *getArray  (const char*, bool &success)       noexcept;
-    std::nullptr_t getNull   (const char*, bool &success) const noexcept;
-    bool           getBool   (const char*, bool &success) const noexcept;
+    bool reserve(unsigned capacity = 0U) noexcept;
+    void remove (const std::string&)     noexcept;
+    void remove (const String&)          noexcept;
+    void remove (const char*)            noexcept;
     
-    String        *getString (const std::string&)       noexcept;
-    double         getFloat64(const std::string&) const noexcept;
-    std::int64_t   getInt64  (const std::string&) const noexcept;
-    std::uint64_t  getUint64 (const std::string&) const noexcept;
-    Object        *getObject (const std::string&)       noexcept;
-    Array         *getArray  (const std::string&)       noexcept;
-    std::nullptr_t getNull   (const std::string&) const noexcept;
-    bool           getBool   (const std::string&) const noexcept;
-    
-    String        *getString (const String&)       noexcept;
-    double         getFloat64(const String&) const noexcept;
-    std::int64_t   getInt64  (const String&) const noexcept;
-    std::uint64_t  getUint64 (const String&) const noexcept;
-    Object        *getObject (const String&)       noexcept;
-    Array         *getArray  (const String&)       noexcept;
-    std::nullptr_t getNull   (const String&) const noexcept;
-    bool           getBool   (const String&) const noexcept;
-    
-    String        *getString (const char*)       noexcept;
-    double         getFloat64(const char*) const noexcept;
-    std::int64_t   getInt64  (const char*) const noexcept;
-    std::uint64_t  getUint64 (const char*) const noexcept;
-    Object        *getObject (const char*)       noexcept;
-    Array         *getArray  (const char*)       noexcept;
-    std::nullptr_t getNull   (const char*) const noexcept;
-    bool           getBool   (const char*) const noexcept;
-
-    bool  getString (const std::string&, GetCallbackRef<String>)            noexcept;
-    bool  getFloat64(const std::string&, GetCallback<double>)         const noexcept;
-    bool  getInt64  (const std::string&, GetCallback<std::int64_t>)   const noexcept;
-    bool  getUint64 (const std::string&, GetCallback<std::uint64_t>)  const noexcept;
-    bool  getObject (const std::string&, GetCallbackRef<Object>)            noexcept;
-    bool  getArray  (const std::string&, GetCallbackRef<Array>)             noexcept;
-    bool  getNull   (const std::string&, GetCallback<std::nullptr_t>) const noexcept;
-    bool  getBool   (const std::string&, GetCallback<bool>)           const noexcept;
-
-    bool  getString (const std::string&, GetCallbackRef<String>,      FailureCallback)       noexcept;
-    bool  getFloat64(const std::string&, GetCallback<double>,         FailureCallback) const noexcept;
-    bool  getInt64  (const std::string&, GetCallback<std::int64_t>,   FailureCallback) const noexcept;
-    bool  getUint64 (const std::string&, GetCallback<std::uint64_t>,  FailureCallback) const noexcept;
-    bool  getObject (const std::string&, GetCallbackRef<Object>,      FailureCallback)       noexcept;
-    bool  getArray  (const std::string&, GetCallbackRef<Array>,       FailureCallback)       noexcept;
-    bool  getNull   (const std::string&, GetCallback<std::nullptr_t>, FailureCallback) const noexcept;
-    bool  getBool   (const std::string&, GetCallback<bool>,           FailureCallback) const noexcept;
-
-    bool  getString (const std::string&, GetCallbackRef<String>,      std::nullptr_t)       noexcept = delete;
-    bool  getFloat64(const std::string&, GetCallback<double>,         std::nullptr_t) const noexcept = delete;
-    bool  getInt64  (const std::string&, GetCallback<std::int64_t>,   std::nullptr_t) const noexcept = delete;
-    bool  getUint64 (const std::string&, GetCallback<std::uint64_t>,  std::nullptr_t) const noexcept = delete;
-    bool  getObject (const std::string&, GetCallbackRef<Object>,      std::nullptr_t)       noexcept = delete;
-    bool  getArray  (const std::string&, GetCallbackRef<Array>,       std::nullptr_t)       noexcept = delete;
-    bool  getNull   (const std::string&, GetCallback<std::nullptr_t>, std::nullptr_t) const noexcept = delete;
-    bool  getBool   (const std::string&, GetCallback<bool>,           std::nullptr_t) const noexcept = delete;
-
-    bool  getString (const std::string&, std::nullptr_t)       noexcept = delete;
-    bool  getFloat64(const std::string&, std::nullptr_t) const noexcept = delete;
-    bool  getInt64  (const std::string&, std::nullptr_t) const noexcept = delete;
-    bool  getUint64 (const std::string&, std::nullptr_t) const noexcept = delete;
-    bool  getObject (const std::string&, std::nullptr_t)       noexcept = delete;
-    bool  getArray  (const std::string&, std::nullptr_t)       noexcept = delete;
-    bool  getNull   (const std::string&, std::nullptr_t) const noexcept = delete;
-    bool  getBool   (const std::string&, std::nullptr_t) const noexcept = delete;
-
-    bool  getString (const String&, GetCallbackRef<String>)            noexcept;
-    bool  getFloat64(const String&, GetCallback<double>)         const noexcept;
-    bool  getInt64  (const String&, GetCallback<std::int64_t>)   const noexcept;
-    bool  getUint64 (const String&, GetCallback<std::uint64_t>)  const noexcept;
-    bool  getObject (const String&, GetCallbackRef<Object>)            noexcept;
-    bool  getArray  (const String&, GetCallbackRef<Array>)             noexcept;
-    bool  getNull   (const String&, GetCallback<std::nullptr_t>) const noexcept;
-    bool  getBool   (const String&, GetCallback<bool>)           const noexcept;
-
-    bool  getString (const String&, GetCallbackRef<String>,      FailureCallback)       noexcept;
-    bool  getFloat64(const String&, GetCallback<double>,         FailureCallback) const noexcept;
-    bool  getInt64  (const String&, GetCallback<std::int64_t>,   FailureCallback) const noexcept;
-    bool  getUint64 (const String&, GetCallback<std::uint64_t>,  FailureCallback) const noexcept;
-    bool  getObject (const String&, GetCallbackRef<Object>,      FailureCallback)       noexcept;
-    bool  getArray  (const String&, GetCallbackRef<Array>,       FailureCallback)       noexcept;
-    bool  getNull   (const String&, GetCallback<std::nullptr_t>, FailureCallback) const noexcept;
-    bool  getBool   (const String&, GetCallback<bool>,           FailureCallback) const noexcept;
-
-    bool  getString (const String&, GetCallbackRef<String>,      std::nullptr_t)       noexcept = delete;
-    bool  getFloat64(const String&, GetCallback<double>,         std::nullptr_t) const noexcept = delete;
-    bool  getInt64  (const String&, GetCallback<std::int64_t>,   std::nullptr_t) const noexcept = delete;
-    bool  getUint64 (const String&, GetCallback<std::uint64_t>,  std::nullptr_t) const noexcept = delete;
-    bool  getObject (const String&, GetCallbackRef<Object>,      std::nullptr_t)       noexcept = delete;
-    bool  getArray  (const String&, GetCallbackRef<Array>,       std::nullptr_t)       noexcept = delete;
-    bool  getNull   (const String&, GetCallback<std::nullptr_t>, std::nullptr_t) const noexcept = delete;
-    bool  getBool   (const String&, GetCallback<bool>,           std::nullptr_t) const noexcept = delete;
-
-    bool  getString (const String&, std::nullptr_t)       noexcept = delete;
-    bool  getFloat64(const String&, std::nullptr_t) const noexcept = delete;
-    bool  getInt64  (const String&, std::nullptr_t) const noexcept = delete;
-    bool  getUint64 (const String&, std::nullptr_t) const noexcept = delete;
-    bool  getObject (const String&, std::nullptr_t)       noexcept = delete;
-    bool  getArray  (const String&, std::nullptr_t)       noexcept = delete;
-    bool  getNull   (const String&, std::nullptr_t) const noexcept = delete;
-    bool  getBool   (const String&, std::nullptr_t) const noexcept = delete;
-
-    bool  getString (const char*, GetCallbackRef<String>)            noexcept;
-    bool  getFloat64(const char*, GetCallback<double>)         const noexcept;
-    bool  getInt64  (const char*, GetCallback<std::int64_t>)   const noexcept;
-    bool  getUint64 (const char*, GetCallback<std::uint64_t>)  const noexcept;
-    bool  getObject (const char*, GetCallbackRef<Object>)            noexcept;
-    bool  getArray  (const char*, GetCallbackRef<Array>)             noexcept;
-    bool  getNull   (const char*, GetCallback<std::nullptr_t>) const noexcept;
-    bool  getBool   (const char*, GetCallback<bool>)           const noexcept;
-
-    bool  getString (const char*, GetCallbackRef<String>,      FailureCallback)       noexcept;
-    bool  getFloat64(const char*, GetCallback<double>,         FailureCallback) const noexcept;
-    bool  getInt64  (const char*, GetCallback<std::int64_t>,   FailureCallback) const noexcept;
-    bool  getUint64 (const char*, GetCallback<std::uint64_t>,  FailureCallback) const noexcept;
-    bool  getObject (const char*, GetCallbackRef<Object>,      FailureCallback)       noexcept;
-    bool  getArray  (const char*, GetCallbackRef<Array>,       FailureCallback)       noexcept;
-    bool  getNull   (const char*, GetCallback<std::nullptr_t>, FailureCallback) const noexcept;
-    bool  getBool   (const char*, GetCallback<bool>,           FailureCallback) const noexcept;
-
-    bool  getString (const char*, GetCallbackRef<String>,      std::nullptr_t)       noexcept = delete;
-    bool  getFloat64(const char*, GetCallback<double>,         std::nullptr_t) const noexcept = delete;
-    bool  getInt64  (const char*, GetCallback<std::int64_t>,   std::nullptr_t) const noexcept = delete;
-    bool  getUint64 (const char*, GetCallback<std::uint64_t>,  std::nullptr_t) const noexcept = delete;
-    bool  getObject (const char*, GetCallbackRef<Object>,      std::nullptr_t)       noexcept = delete;
-    bool  getArray  (const char*, GetCallbackRef<Array>,       std::nullptr_t)       noexcept = delete;
-    bool  getNull   (const char*, GetCallback<std::nullptr_t>, std::nullptr_t) const noexcept = delete;
-    bool  getBool   (const char*, GetCallback<bool>,           std::nullptr_t) const noexcept = delete;
-
-    bool  getString (const char*, std::nullptr_t)       noexcept = delete;
-    bool  getFloat64(const char*, std::nullptr_t) const noexcept = delete;
-    bool  getInt64  (const char*, std::nullptr_t) const noexcept = delete;
-    bool  getUint64 (const char*, std::nullptr_t) const noexcept = delete;
-    bool  getObject (const char*, std::nullptr_t)       noexcept = delete;
-    bool  getArray  (const char*, std::nullptr_t)       noexcept = delete;
-    bool  getNull   (const char*, std::nullptr_t) const noexcept = delete;
-    bool  getBool   (const char*, std::nullptr_t) const noexcept = delete;
-    
-    bool set(const std::string&, JSON&&)                   noexcept;
-    bool set(const std::string&, String&&)                 noexcept;
-    bool set(const std::string&, double)                   noexcept;
-    bool set(const std::string&, int64_t)                  noexcept;
-    bool set(const std::string&, uint64_t)                 noexcept;
-    bool set(const std::string&, int)                      noexcept;
-    bool set(const std::string&, unsigned)                 noexcept;
-    bool set(const std::string&, Object&&)                 noexcept;
-    bool set(const std::string&, Array&&)                  noexcept;
-    bool set(const std::string&, std::nullptr_t = nullptr) noexcept;
-    bool set(const std::string&, bool)                     noexcept;
-    
+    Result<JSON&>   get      (const std::string&) noexcept;
+    Result<String&> getString(const std::string&) noexcept;
+    Result<Object&> getObject(const std::string&) noexcept;
+    Result<Array&>  getArray (const std::string&) noexcept;
+    Result<JSON&>   get      (const String&)      noexcept;
+    Result<String&> getString(const String&)      noexcept;
+    Result<Object&> getObject(const String&)      noexcept;
+    Result<Array&>  getArray (const String&)      noexcept;
+    Result<JSON&>   get      (const char*)        noexcept;
+    Result<String&> getString(const char*)        noexcept;
+    Result<Object&> getObject(const char*)        noexcept;
+    Result<Array&>  getArray (const char*)        noexcept;
+         
+    Result<const JSON&>    get       (const std::string&) const noexcept;
+    Result<const String&>  getString (const std::string&) const noexcept;
+    Result<double>         getFloat64(const std::string&) const noexcept;
+    Result<std::int64_t>   getInt64  (const std::string&) const noexcept;
+    Result<std::uint64_t>  getUint64 (const std::string&) const noexcept;
+    Result<const Object&>  getObject (const std::string&) const noexcept;
+    Result<const Array&>   getArray  (const std::string&) const noexcept;
+    Result<std::nullptr_t> getNull   (const std::string&) const noexcept;
+    Result<bool>           getBool   (const std::string&) const noexcept;
+    Result<const JSON&>    get       (const String&)      const noexcept;
+    Result<const String&>  getString (const String&)      const noexcept;
+    Result<double>         getFloat64(const String&)      const noexcept;
+    Result<std::int64_t>   getInt64  (const String&)      const noexcept;
+    Result<std::uint64_t>  getUint64 (const String&)      const noexcept;
+    Result<const Object&>  getObject (const String&)      const noexcept;
+    Result<const Array&>   getArray  (const String&)      const noexcept;
+    Result<std::nullptr_t> getNull   (const String&)      const noexcept;
+    Result<bool>           getBool   (const String&)      const noexcept;
+    Result<const JSON&>    get       (const char*)        const noexcept;
+    Result<const String&>  getString (const char*)        const noexcept;
+    Result<double>         getFloat64(const char*)        const noexcept;
+    Result<std::int64_t>   getInt64  (const char*)        const noexcept;
+    Result<std::uint64_t>  getUint64 (const char*)        const noexcept;
+    Result<const Object&>  getObject (const char*)        const noexcept;
+    Result<const Array&>   getArray  (const char*)        const noexcept;
+    Result<std::nullptr_t> getNull   (const char*)        const noexcept;
+    Result<bool>           getBool   (const char*)        const noexcept;
+        
+    JSON   &unsafeGet      (const std::string&);
+    String &unsafeGetString(const std::string&);
+    Object &unsafeGetObject(const std::string&);
+    Array  &unsafeGetArray (const std::string&);
+    JSON   &unsafeGet      (const String&);
+    String &unsafeGetString(const String&);
+    Object &unsafeGetObject(const String&);
+    Array  &unsafeGetArray (const String&);
+    JSON   &unsafeGet      (const char*);
+    String &unsafeGetString(const char*);
+    Object &unsafeGetObject(const char*);
+    Array  &unsafeGetArray (const char*);
+       
+    const JSON    &unsafeGet       (const std::string&) const noexcept;
+    const String  &unsafeGetString (const std::string&) const noexcept;
+    double         unsafeGetFloat64(const std::string&) const noexcept;
+    std::int64_t   unsafeGetInt64  (const std::string&) const noexcept;
+    std::uint64_t  unsafeGetUint64 (const std::string&) const noexcept;
+    const Object  &unsafeGetObject (const std::string&) const noexcept;
+    const Array   &unsafeGetArray  (const std::string&) const noexcept;
+    std::nullptr_t unsafeGetNull   (const std::string&) const noexcept;
+    bool           unsafeGetBool   (const std::string&) const noexcept;
+    const JSON    &unsafeGet       (const String&)      const noexcept;
+    const String  &unsafeGetString (const String&)      const noexcept;
+    double         unsafeGetFloat64(const String&)      const noexcept;
+    std::int64_t   unsafeGetInt64  (const String&)      const noexcept;
+    std::uint64_t  unsafeGetUint64 (const String&)      const noexcept;
+    const Object  &unsafeGetObject (const String&)      const noexcept;
+    const Array   &unsafeGetArray  (const String&)      const noexcept;
+    std::nullptr_t unsafeGetNull   (const String&)      const noexcept;
+    bool           unsafeGetBool   (const String&)      const noexcept;
+    const JSON    &unsafeGet       (const char*)        const noexcept;
+    const String  &unsafeGetString (const char*)        const noexcept;
+    double         unsafeGetFloat64(const char*)        const noexcept;
+    std::int64_t   unsafeGetInt64  (const char*)        const noexcept;
+    std::uint64_t  unsafeGetUint64 (const char*)        const noexcept;
+    const Object  &unsafeGetObject (const char*)        const noexcept;
+    const Array   &unsafeGetArray  (const char*)        const noexcept;
+    std::nullptr_t unsafeGetNull   (const char*)        const noexcept;
+    bool           unsafeGetBool   (const char*)        const noexcept;
+        
     bool set(const String&, JSON&&)                   noexcept;
     bool set(const String&, String&&)                 noexcept;
     bool set(const String&, double)                   noexcept;
-    bool set(const String&, int64_t)                  noexcept;
-    bool set(const String&, uint64_t)                 noexcept;
+    bool set(const String&, std::int64_t)             noexcept;
+    bool set(const String&, std::uint64_t)            noexcept;
     bool set(const String&, int)                      noexcept;
     bool set(const String&, unsigned)                 noexcept;
     bool set(const String&, Object&&)                 noexcept;
     bool set(const String&, Array&&)                  noexcept;
     bool set(const String&, std::nullptr_t = nullptr) noexcept;
     bool set(const String&, bool)                     noexcept;
-    
-    bool set(const char*, JSON&&)                   noexcept;
-    bool set(const char*, String&&)                 noexcept;
-    bool set(const char*, double)                   noexcept;
-    bool set(const char*, int64_t)                  noexcept;
-    bool set(const char*, uint64_t)                 noexcept;
-    bool set(const char*, int)                      noexcept;
-    bool set(const char*, unsigned)                 noexcept;
-    bool set(const char*, Object&&)                 noexcept;
-    bool set(const char*, Array&&)                  noexcept;
-    bool set(const char*, std::nullptr_t = nullptr) noexcept;
-    bool set(const char*, bool)                     noexcept;
+    bool set(String&&, JSON&&)                        noexcept;
+    bool set(String&&, String&&)                      noexcept;
+    bool set(String&&, double)                        noexcept;
+    bool set(String&&, std::int64_t)                  noexcept;
+    bool set(String&&, std::uint64_t)                 noexcept;
+    bool set(String&&, int)                           noexcept;
+    bool set(String&&, unsigned)                      noexcept;
+    bool set(String&&, Object&&)                      noexcept;
+    bool set(String&&, Array&&)                       noexcept;
+    bool set(String&&, std::nullptr_t = nullptr)      noexcept;
+    bool set(String&&, bool)                          noexcept;
 
-    ValueType *operator[](const std::string&)  noexcept;
-    ValueType *operator[](const String&)       noexcept;
-    ValueType *operator[](String&&)            noexcept;
-    ValueType *operator[](String::Container&&) noexcept;
-    ValueType *operator[](const char*)         noexcept;
+    bool     has (const std::string&) const noexcept;
+    bool     has (const char*)        const noexcept;
+    bool     has (const String&)      const noexcept;
+    unsigned size() const noexcept;
+
+    const JSON& operator[](const std::string&) const noexcept;
+    const JSON& operator[](const char*)        const noexcept;
+    JSON&       operator[](const String&);
+    JSON&       operator[](String&&)                 noexcept;
+    const JSON& operator[](const String&)      const noexcept;
 
     Allocator getAllocator() const noexcept;
+
+    iterator       begin()       noexcept;
+    const_iterator begin() const noexcept;
+    iterator       end()         noexcept;
+    const_iterator end()   const noexcept;
+
+    void destructor() noexcept;
+
+    static KeyAllocator &getKeyAllocator();
     
 private:
     Container m_data;
+    static Arena        s_keyArena;
+    static KeyAllocator s_keyAllocator;
 
-    template<typename T, T*(JSON::*method)(bool&)>
-    T *get(const char *const key, bool &success) noexcept {
-        assert(key != nullptr);
-
-        ValueType *const json = get(key);
-        if(json == nullptr) {
-            success = false;
-            return nullptr;
+    template<typename T, Result<T&>(JSON::*method)()>
+    Result<T&> getRef(const char *const key) noexcept {
+        const Result<JSON&> jsonResult = get(key);
+        if(!jsonResult.isSuccess()) {
+            return Result<T&>::fromError(true);
         }
 
-        T *const ret = (json->*method)(success);
-        if(!success) {
-            success = false;
-            return nullptr;
+        return (jsonResult.getRef().*method)();
+    }
+
+    template<typename T, Result<const T&>(JSON::*method)() const>
+    Result<const T&> getConstRef(const char *const key) const noexcept {
+        const Result<const JSON&> jsonResult = get(key);
+        if(!jsonResult.isSuccess()) {
+            return Result<const T&>::fromError(true);
         }
 
-        success = true;
-        return ret;
+        return (jsonResult.getRef().*method)();
     }
 
-    template<typename T, T(JSON::*method)(bool&) const>
-    T get(const char *const key, bool &success) const noexcept {
-        assert(key != nullptr);
-
-        const ValueType *const json = get(key);
-        if(json == nullptr) {
-            success = false;
-            return 0;
+    template<typename T, Result<T>(JSON::*method)() const>
+    Result<T> getValue(const char *const key) const noexcept {
+        const Result<const JSON&> jsonResult = get(key);
+        if(!jsonResult.isSuccess()) {
+            return Result<T>::fromError(true);
         }
 
-        const T ret = (json->*method)(success);
-        if(!success) {
-            success = false;
-            return 0;
+        return (jsonResult.getRef().*method)();
+    }
+
+    template<typename T, Result<T&>(JSON::*method)()>
+    Result<T&> getRef(const String &key) noexcept {
+        const Result<JSON&> jsonResult = get(key);
+        if(!jsonResult.isSuccess()) {
+            return Result<T&>::fromError(true);
         }
 
-        success = true;
-        return ret;
+        return (jsonResult.getRef().*method)();
     }
 
-    template<typename T, T*(JSON::*method)(bool&)>
-    bool get(const char *const key, GetCallbackRef<T> callback, FailureCallback failureCallback) noexcept {
-        assert(key != nullptr);
-        assert(callback != nullptr);
-        assert(failureCallback != nullptr);
-
-        bool success;
-        T *const value = get<T, method>(key, success);
-
-        if(success) {
-            callback(*value);
-        } else {
-            failureCallback();
+    template<typename T, Result<const T&>(JSON::*method)() const>
+    Result<const T&> getConstRef(const String &key) const noexcept {
+        const Result<const JSON&> jsonResult = get(key);
+        if(!jsonResult.isSuccess()) {
+            return Result<const T&>::fromError(true);
         }
 
-        return success;
+        return (jsonResult.getRef().*method)();
     }
 
-    template<typename T, T*(JSON::*method)(bool&)>
-    bool get(const char *const key, GetCallbackRef<T> callback) noexcept {
-        assert(key != nullptr);
-        assert(callback != nullptr);
-
-        bool success;
-        T *const value = get<T, method>(key, success);
-
-        if(success) {
-            callback(*value);
+    template<typename T, Result<T>(JSON::*method)() const>
+    Result<T> getValue(const String &key) const noexcept {
+        const Result<const JSON&> jsonResult = get(key);
+        if(!jsonResult.isSuccess()) {
+            return Result<T>::fromError(true);
         }
 
-        return success;
+        return (jsonResult.getRef().*method)();
     }
 
-    template<typename T, T(JSON::*method)(bool&) const>
-    bool get(const char *const key, GetCallback<T> callback, FailureCallback failureCallback) const noexcept {
-        assert(key != nullptr);
-        assert(callback != nullptr);
-        assert(failureCallback != nullptr);
-
-        bool success;
-        const T value = get<T, method>(key, success);
-
-        if(success) {
-            callback(value);
-        } else {
-            failureCallback();
+    template<typename T>
+    bool setValue(const String &key, const T value) noexcept {
+        try {
+            (*this)[key] = value;
+            return true;
+        } catch(...) {
+            return false;
         }
-
-        return success;
     }
 
-    template<typename T, T(JSON::*method)(bool&) const>
-    bool get(const char *const key, GetCallback<T> callback) const noexcept {
-        assert(key != nullptr);
-        assert(callback != nullptr);
-
-        bool success;
-        const T value = get<T, method>(key, success);
-
-        if(success) {
-            callback(value);
+    template<typename T>
+    bool setValue(String &&key, const T value) noexcept {
+        try {
+            (*this)[std::move(key)] = value;
+            return true;
+        } catch(...) {
+            return false;
         }
-
-        return success;
     }
 
-    template<typename T, T&(JSON::*method)(bool&)>
-    bool get(const std::string &key, GetCallbackRef<T> callback, FailureCallback failureCallback) noexcept {
-        assert(callback != nullptr);
-        assert(failureCallback != nullptr);
-
-        return get<T,method>(key.c_str(), callback, failureCallback);
+    template <typename T>
+    bool setRef(const String &key, T &&value,
+    typename std::enable_if<!std::is_lvalue_reference<T>::value>::type* = nullptr) noexcept {
+        try {
+            (*this)[key] = std::move(value);
+            return true;
+        } catch (...) {
+            return false;
+        }
     }
 
-    template<typename T, T&(JSON::*method)(bool&)>
-    bool get(const String &key, GetCallbackRef<T> callback, FailureCallback failureCallback) noexcept {
-        assert(callback != nullptr);
-        assert(failureCallback != nullptr);
-
-        return get<T,method>(key.getCStr(), callback, failureCallback);
-    }
-
-    template<typename T, T(JSON::*method)(bool&) const>
-    bool get(const std::string &key, GetCallback<T> callback, FailureCallback failureCallback) const noexcept {
-        assert(callback != nullptr);
-        assert(failureCallback != nullptr);
-
-        return get<T,method>(key.c_str(), callback, failureCallback);
-    }
-
-    template<typename T, T(JSON::*method)(bool&) const>
-    bool get(const String &key, GetCallback<T> callback, FailureCallback failureCallback) const noexcept {
-        assert(callback != nullptr);
-        assert(failureCallback != nullptr);
-
-        return get<T,method>(key.getCStr(), callback, failureCallback);
-    }    
-
-    template<typename T, T&(JSON::*method)(bool&)>
-    bool get(const std::string &key, GetCallbackRef<T> callback) noexcept {
-        assert(callback != nullptr);
-
-        return get<T,method>(key.c_str(), callback);
-    }
-
-    template<typename T, T&(JSON::*method)(bool&)>
-    bool get(const String &key, GetCallbackRef<T> callback) noexcept {
-        assert(callback != nullptr);
-
-        return get<T,method>(key.getCStr(), callback);
-    }
-
-    template<typename T, T(JSON::*method)(bool&) const>
-    bool get(const std::string &key, GetCallback<T> callback) const noexcept {
-        assert(callback != nullptr);
-
-        return get<T,method>(key.c_str(), callback);
-    }
-
-    template<typename T, T(JSON::*method)(bool&) const>
-    bool get(const String &key, GetCallback<T> callback) const noexcept {
-        assert(callback != nullptr);
-
-        return get<T,method>(key.getCStr(), callback);
+    template <typename T>
+    bool setRef(String &&key, T &&value,
+    typename std::enable_if<!std::is_lvalue_reference<T>::value>::type* = nullptr) noexcept {
+        try {
+            (*this)[std::move(key)] = std::move(value);
+            return true;
+        } catch (...) {
+            return false;
+        }
     }
 };
 

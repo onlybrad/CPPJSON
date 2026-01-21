@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <memory>
 #include <limits>
+#include "result.hpp"
 
 namespace CPPJSON {
 namespace Util {
@@ -26,19 +27,16 @@ template<
     typename T,
     typename std::enable_if<std::is_unsigned<T>::value, bool>::type = true
 >
-T safeMult(T a, T b, bool &success) noexcept {
+Result<T> safeMult(T a, T b) noexcept {
     if(b == 0) {
-        success = true;
-        return 0;
+        Result<T>::fromValue(0U);
     }
 
     if(a > std::numeric_limits<T>::max() / b) {
-        success = false;
-        return 0;
+        return Result<T>::fromError(true);
     }
 
-    success = true;
-    return a * b;
+    return Result<T>::fromValue(a * b);
 }
 
 template<

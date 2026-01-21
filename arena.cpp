@@ -6,13 +6,15 @@
 
 namespace CPPJSON {
 
-const unsigned Arena::MINIMUM_SIZE   = 1024U;
-const unsigned Arena::INFINITE_NODES = 0U;
+const unsigned Arena::MINIMUM_CAPACITY = 1024U;
+const unsigned Arena::INFINITE_NODES   = 0U;
 
 ArenaNode::ArenaNode(const unsigned size_) noexcept : size(size_) {}
 
-ArenaNode *ArenaNode::create(const unsigned size) noexcept {
-    void *const nodeAndData = calloc(sizeof(ArenaNode) + (std::size_t)size, sizeof(unsigned char));
+ArenaNode *ArenaNode::create(unsigned size) noexcept {
+    size = std::max(size, Arena::MINIMUM_CAPACITY);
+
+    void *const nodeAndData = CPPJSON::calloc(sizeof(ArenaNode) + (std::size_t)size, sizeof(unsigned char));
     if(nodeAndData == nullptr) {
         return nullptr;
     }
@@ -42,11 +44,17 @@ bool Arena::init(const unsigned size, const unsigned nodeMax, const char *const 
     return m_head != nullptr;
 }
 
+Arena::Arena(unsigned size, unsigned maxNodes, const char *name) {
+    if(!init(size, maxNodes, name)) {
+        throw std::bad_alloc();
+    }
+}
+
 Arena::~Arena() noexcept {
     ArenaNode *current = m_head;
     while (current != nullptr) {
         ArenaNode *const next = current->next;
-        free(current);
+        CPPJSON::free(current);
         current = next;
     }
 }
@@ -111,7 +119,7 @@ bool Arena::createNextNode(const unsigned objectSize) {
 
     if(next->size < objectSize) {
         ArenaNode *const nextNext = next->next;
-        free(next);
+        CPPJSON::free(next);
 
         if((m_current->next = ArenaNode::create(nodeSize)) != nullptr) {
             m_current->next->next = nextNext;
