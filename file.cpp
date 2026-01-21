@@ -30,16 +30,16 @@ static std::int64_t ftell(std::FILE *const file) {
 #endif    
 }
 
-void FileContents::setData(Byte *const data, unsigned length) noexcept {
+void FileContents::setData(unsigned char *const data, unsigned length) noexcept {
     m_data.reset(data);
     m_length = length;
 }
 
-FileContents::Byte *FileContents::getData() noexcept {
+unsigned char *FileContents::getData() noexcept {
     return m_data.get();
 }
 
-const FileContents::Byte *FileContents::getData() const noexcept {
+const unsigned char *FileContents::getData() const noexcept {
     return m_data.get();
 }
 
@@ -75,7 +75,7 @@ FileContents FileContents::get(const char *const path) noexcept {
 
     std::FILE *const file = _wfopen(wpath, L"rb");
     
-    FileContents::Allocator::s_deallocate(reinterpret_cast<FileContents::Byte*>(wpath));
+    FileContents::Allocator::s_deallocate(reinterpret_cast<unsigned char*>(wpath));
 #else
     std::FILE *const file = std::fopen(path, "rb");
 #endif
@@ -97,7 +97,7 @@ FileContents FileContents::get(const char *const path) noexcept {
         return fileContents;
     }
 
-    if(static_cast<std::uintmax_t>(length) >= static_cast<std::uintmax_t>(std::numeric_limits<unsigned>::max())) {
+    if(length >= static_cast<std::int64_t>(std::numeric_limits<unsigned>::max())) {
         fileContents.setError(FileContents::Error::TOO_LARGE);
         return fileContents;
     }
@@ -107,16 +107,16 @@ FileContents FileContents::get(const char *const path) noexcept {
         return fileContents;
     }
 
-    FileContents::Byte *data;
+    unsigned char *data;
     try {
         //the buffer has 1 extra byte allocated in case a null terminated string is required
-        data = FileContents::Allocator::s_allocate(static_cast<unsigned>(length) + 1);
+        data = FileContents::Allocator::s_allocate(static_cast<unsigned>(length) + 1U);
     } catch(...) {
         fileContents.setError(FileContents::Error::MEMORY);
         return fileContents;
     }
 
-    if(std::fread(data, sizeof(FileContents::Byte), static_cast<std::size_t>(length), file) !=  static_cast<std::size_t>(length)) {
+    if(std::fread(data, sizeof(unsigned char), static_cast<std::size_t>(length), file) !=  static_cast<std::size_t>(length)) {
         fileContents.setError(FileContents::Error::FREAD);
         FileContents::Allocator::s_deallocate(data);
         return fileContents;

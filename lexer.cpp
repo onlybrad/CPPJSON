@@ -229,8 +229,8 @@ bool Lexer::readNumber(Token &token) noexcept {
     length     -= position;
     token.type  = Token::Type::INT;
 
-    //0 as the first character is only allowed if it's followed by a dot or by an non-digit character
-    if(data[0] == '0' && length > 1U && data[1] != '.' && Util::isDigit(data[1])) {
+    //0 as the first character is only allowed if it's followed by a dot or by a non-digit character
+    if(data[0] == '0' && length > 1U && Util::isDigit(data[1])) {
         success    = false;
         token.type = Token::Type::INVALID;
 
@@ -261,7 +261,7 @@ bool Lexer::readNumber(Token &token) noexcept {
         }
 
         case 'E': {
-            case 'e':
+        case 'e':
             if(!read_e) {
                 read_e     = true;
                 token.type = Token::Type::SCIENTIFIC_INT;

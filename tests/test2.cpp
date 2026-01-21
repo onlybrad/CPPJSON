@@ -15,10 +15,15 @@ int main() {
     }
     
     const std::uint64_t start = Util::usecTimestamp();
-    Parser parser;
-    parser.parse(reinterpret_cast<const char*>(fileContents.getData()), fileContents.getLength());
-    const std::uint64_t end = Util::usecTimestamp();
 
+    Parser parser;
+    ParserResult parserResult = parser.parse(reinterpret_cast<const char*>(fileContents.getData()), fileContents.getLength());
+    if(!parserResult.isSuccess()) {
+        std::cerr << "Failed to parse the file" << '\n';
+        return EXIT_FAILURE;
+    }
+
+    const std::uint64_t end = Util::usecTimestamp();
     std::cout << "Execution time: " << end - start << '\n';
 }
 

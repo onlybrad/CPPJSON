@@ -26,10 +26,9 @@ public:
     };
 
 private:
-    typedef unsigned char          Byte;
-    typedef GeneralAllocator<Byte> Allocator;
+    typedef GeneralAllocator<unsigned char> Allocator;
 
-    typedef std::unique_ptr<Byte, decltype(&Allocator::s_deallocate)> Data;
+    typedef std::unique_ptr<unsigned char, decltype(&Allocator::s_deallocate)> Data;
 
     Data m_data = {nullptr, Allocator::s_deallocate};
     union {
@@ -41,16 +40,16 @@ public:
     FileContents()                               noexcept = default;
     FileContents(const FileContents&)                     = delete;
     FileContents(FileContents&&)                 noexcept = default;
-    FileContents& operator=(const FileContents&)          = delete;
-    FileContents& operator=(FileContents&&)      noexcept = default;
+    FileContents &operator=(const FileContents&)          = delete;
+    FileContents &operator=(FileContents&&)      noexcept = default;
 
-    void setData (Byte *data, unsigned length) noexcept;
+    void setData (unsigned char *data, unsigned length) noexcept;
     void setError(Error error)                      noexcept;
 
-    Byte       *getData  ()       noexcept;
-    const Byte *getData  () const noexcept;
-    Error       getError () const noexcept;
-    unsigned    getLength() const noexcept;
+    unsigned char       *getData  ()       noexcept;
+    const unsigned char *getData  () const noexcept;
+    Error                getError () const noexcept;
+    unsigned             getLength() const noexcept;
 
     static FileContents get(const std::string&) noexcept;
     static FileContents get(const char*)        noexcept;

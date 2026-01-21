@@ -10,9 +10,9 @@
 namespace CPPJSON {
 
 class Lexer {   
-    const char *const m_data     = nullptr;
-    const unsigned    m_length   = 0U;
-    unsigned          m_position = 0U;
+    const char    *m_data     = nullptr;
+    const unsigned m_length   = 0U;
+    unsigned       m_position = 0U;
 
     void skipWhitespace          ()                               noexcept;
     bool readString              (Token&)                         noexcept;

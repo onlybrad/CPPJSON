@@ -4,6 +4,8 @@
 
 namespace CPPJSON {
 
+const unsigned Tokens::MINIMUM_CAPACITY = 8U;
+
 bool Tokens::reserve(unsigned capacity) noexcept {
     if(capacity < MINIMUM_CAPACITY) {
         capacity = MINIMUM_CAPACITY;

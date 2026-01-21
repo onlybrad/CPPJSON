@@ -51,7 +51,7 @@ struct GeneralAllocator {
         return false;
     }
 
-    template <class U>
+    template<class U>
     GeneralAllocator(const GeneralAllocator<U>&){
     
     }
@@ -129,6 +129,7 @@ struct ArenaAllocator {
 
     T   *allocate  (size_type count);
     void deallocate(T *data, size_type count) noexcept;
+    void reset() noexcept;
 
     bool operator==(const ArenaAllocator &arenaAllocator) const noexcept {
         return m_arena == arenaAllocator.m_arena;
@@ -139,7 +140,9 @@ struct ArenaAllocator {
     }
 
 private:
-    template<typename U> friend struct ArenaAllocator;
+    template<typename U> 
+    friend struct ArenaAllocator;
+    
     Arena *m_arena = nullptr;
 };
 
@@ -174,8 +177,15 @@ T *ArenaAllocator<T>::allocate(size_type count) {
 template<typename T>
 void ArenaAllocator<T>::deallocate(T *const, const size_type) noexcept {}
 
+template <typename T>
+void ArenaAllocator<T>::reset() noexcept {
+    if(m_arena != nullptr) {
+        m_arena->reset();
+    }
+}
+
 template<typename T>
-template <typename U>
+template<typename U>
 ArenaAllocator<T>::ArenaAllocator(const ArenaAllocator<U> &arenaAllocator) noexcept :
 m_arena(arenaAllocator.m_arena)
 {}

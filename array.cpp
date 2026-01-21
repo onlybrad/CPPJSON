@@ -11,7 +11,7 @@
 
 namespace CPPJSON {
 
-constexpr unsigned Array::MINIMUM_CAPACITY = 8U;
+const unsigned Array::MINIMUM_CAPACITY = 8U;
 
 Array::Array(const Allocator &allocator) :
 m_data(0, allocator)
@@ -51,240 +51,134 @@ bool Array::reserve(unsigned capacity) noexcept {
     return true;
 }
 
-JSON *Array::get(const unsigned index) noexcept {
+Result<JSON&> Array::get(const unsigned index) noexcept {
     if(index >= size()) {
-        return nullptr;
+        return Result<JSON&>::fromError(true);
     }
 
-    return &m_data[index];
+    return Result<JSON&>::fromRef(m_data[index]);
 }
 
-const JSON *Array::get(const unsigned index) const noexcept {
-    return const_cast<const JSON*>(const_cast<Array*>(this)->get(index));
+Result<const JSON&> Array::get(const unsigned index) const noexcept {
+    if(index >= size()) {
+        return Result<const JSON&>::fromError(true);
+    }
+
+    return Result<const JSON&>::fromRef(m_data[index]);
 }
 
-String *Array::getString(const unsigned index, bool &success) noexcept {
-    JSON *const json = get(index);
-    return json->asString(success);
+Result<String&> Array::getString(const unsigned index) noexcept {
+    return getRef<String, JSON::asString>(index);
 }
 
-double Array::getFloat64(const unsigned index, bool &success) const noexcept {
-    const JSON *const json = get(index);
-    return json->asFloat64(success);
+Result<double> Array::getFloat64(const unsigned index) const noexcept {
+    return getConst<double, JSON::asFloat64>(index);
 }
 
-std::int64_t Array::getInt64(const unsigned index, bool &success) const noexcept {
-    const JSON *const json = get(index);
-    return json->asInt64(success);
+Result<std::int64_t> Array::getInt64(const unsigned index) const noexcept {
+    return getConst<std::int64_t, JSON::asInt64>(index);
 }
 
-std::uint64_t Array::getUint64(const unsigned index, bool &success) const noexcept {
-    const JSON *const json = get(index);
-    return json->asUint64(success);
+Result<std::uint64_t> Array::getUint64(const unsigned index) const noexcept {
+    return getConst<std::uint64_t, JSON::asUint64>(index);
 }
 
-Object *Array::getObject(const unsigned index, bool &success) noexcept {
-    JSON *const json = get(index);
-    return json->asObject(success);
+Result<Object&> Array::getObject(const unsigned index) noexcept {
+    return getRef<Object, JSON::asObject>(index);
 }
 
-Array *Array::getArray(const unsigned index, bool &success) noexcept {
-    JSON *const json = get(index);
-    return json->asArray(success);
+Result<Array&> Array::getArray(const unsigned index) noexcept {
+    return getRef<Array, JSON::asArray>(index);
 }
 
-std::nullptr_t Array::getNull(const unsigned index, bool &success) const noexcept {
-    const JSON *const json = get(index);
-    return json->asNull(success);
+Result<std::nullptr_t> Array::getNull(const unsigned index) const noexcept {
+    return getConst<std::nullptr_t, JSON::asNull>(index);
 }
 
-bool Array::getBool(const unsigned index, bool &success) const noexcept {
-    const JSON *const json = get(index);
-    return json->asBool(success);
+Result<bool> Array::getBool(const unsigned index) const noexcept {
+    return getConst<bool, JSON::asBool>(index);
 }
 
-String *Array::getString(unsigned index) noexcept {
-    bool success;
-    return getString(index, success);
+Result<const String&> Array::getString(const unsigned index) const noexcept {
+    return getConstRef<String, JSON::asString>(index);
 }
 
-double Array::getFloat64(unsigned index) const noexcept {
-    bool success;
-    return getFloat64(index, success);
+Result<const Object&> Array::getObject(const unsigned index) const noexcept {
+    return getConstRef<Object, JSON::asObject>(index);
 }
 
-std::int64_t Array::getInt64(unsigned index) const noexcept {
-    bool success;
-    return getInt64(index, success);
+Result<const Array&> Array::getArray(const unsigned index) const noexcept {
+    return getConstRef<Array, JSON::asArray>(index);
 }
 
-std::uint64_t Array::getUint64(unsigned index) const noexcept {
-    bool success;
-    return getUint64(index, success);
+JSON &Array::unsafeGet(const unsigned index) noexcept {
+    assert(static_cast<std::size_t>(index) < m_data.size());
+    return m_data[index];
 }
 
-Object *Array::getObject(unsigned index) noexcept {
-    bool success;
-    return getObject(index, success);
+String &Array::unsafeGetString(const unsigned index) noexcept {
+    return unsafeGet(index).unsafeAsString();
 }
 
-Array *Array::getArray(unsigned index) noexcept {
-    bool success;
-    return getArray(index, success);
+double Array::unsafeGetFloat64(const unsigned index) const noexcept {
+    return unsafeGet(index).unsafeAsFloat64();
 }
 
-std::nullptr_t Array::getNull(unsigned index) const noexcept {
-    bool success;
-    return getNull(index, success);
+std::int64_t Array::unsafeGetInt64(const unsigned index) const noexcept {
+    return unsafeGet(index).unsafeAsInt64();
 }
 
-bool Array::getBool(unsigned index) const noexcept {
-    bool success;
-    return getBool(index, success);
+std::uint64_t Array::unsafeGetUint64(const unsigned index) const noexcept {
+    return unsafeGet(index).unsafeAsUint64();
 }
 
-bool Array::getString(unsigned index, GetCallbackRef<String> callback) noexcept {
-    assert(callback != nullptr);
-    
-    return get<String, &JSON::asString>(index, callback);
+Object &Array::unsafeGetObject(const unsigned index) noexcept {
+    return unsafeGet(index).unsafeAsObject();
 }
 
-bool Array::getFloat64(unsigned index, GetCallback<double> callback) const noexcept {
-    assert(callback != nullptr);
-
-    return get<double, &JSON::asFloat64>(index, callback);
+Array &Array::unsafeGetArray(const unsigned index) noexcept {
+    return unsafeGet(index).unsafeAsArray();
 }
 
-bool Array::getInt64(unsigned index, GetCallback<std::int64_t> callback) const noexcept {
-    assert(callback != nullptr);
-
-    return get<std::int64_t, &JSON::asInt64>(index, callback);
+std::nullptr_t Array::unsafeGetNull(const unsigned index) const noexcept {
+    return unsafeGet(index).unsafeAsNull();
 }
 
-bool Array::getUint64(unsigned index, GetCallback<std::uint64_t> callback) const noexcept {
-    assert(callback != nullptr);
-
-    return get<std::uint64_t, &JSON::asUint64>(index, callback);
+bool Array::unsafeGetBool(const unsigned index) const noexcept {
+    return unsafeGet(index).unsafeAsBool();
 }
 
-bool Array::getObject(unsigned index, GetCallbackRef<Object> callback) noexcept {
-    assert(callback != nullptr);
-
-    return get<Object, &JSON::asObject>(index, callback);
+const JSON &Array::unsafeGet(const unsigned index) const noexcept {
+    assert(static_cast<std::size_t>(index) < m_data.size());
+    return m_data[index];
 }
 
-bool Array::getArray(unsigned index, GetCallbackRef<Array> callback) noexcept {
-    assert(callback != nullptr);
-
-    return get<Array, &JSON::asArray>(index, callback);
+const String &Array::unsafeGetString(const unsigned index) const noexcept {
+    return unsafeGet(index).unsafeAsString();
 }
 
-bool Array::getNull(unsigned index, GetCallback<std::nullptr_t> callback) const noexcept {
-    assert(callback != nullptr);
-
-    return get<std::nullptr_t, &JSON::asNull>(index, callback);
+const Object &Array::unsafeGetObject(const unsigned index) const noexcept {
+    return unsafeGet(index).unsafeAsObject();
 }
 
-bool Array::getBool(unsigned index, GetCallback<bool> callback) const noexcept {
-    assert(callback != nullptr);
-
-    return get<bool, &JSON::asBool>(index, callback);
-}
-
-bool Array::getString(unsigned index, GetCallbackRef<String> callback, FailureCallback failureCallback) noexcept {
-    assert(callback != nullptr);
-    assert(failureCallback != nullptr);
-
-    return get<String, &JSON::asString>(index, callback, failureCallback);
-}
-
-bool Array::getFloat64(unsigned index, GetCallback<double> callback, FailureCallback failureCallback) const noexcept {
-    assert(callback != nullptr);
-    assert(failureCallback != nullptr);
-
-    return get<double, &JSON::asFloat64>(index, callback, failureCallback);
-}
-
-bool Array::getInt64(unsigned index, GetCallback<std::int64_t> callback, FailureCallback failureCallback) const noexcept {
-    assert(callback != nullptr);
-    assert(failureCallback != nullptr);
-
-    return get<std::int64_t, &JSON::asInt64>(index, callback, failureCallback);
-}
-
-bool Array::getUint64(unsigned index, GetCallback<std::uint64_t> callback, FailureCallback failureCallback) const noexcept {
-    assert(callback != nullptr);
-    assert(failureCallback != nullptr);
-    
-    return get<std::uint64_t, &JSON::asUint64>(index, callback, failureCallback);
-}
-
-bool Array::getObject(unsigned index, GetCallbackRef<Object> callback, FailureCallback failureCallback)noexcept {
-    assert(callback != nullptr);
-    assert(failureCallback != nullptr);
-
-    return get<Object, &JSON::asObject>(index, callback, failureCallback);
-}
-
-bool Array::getArray(unsigned index, GetCallbackRef<Array> callback, FailureCallback failureCallback) noexcept {
-    assert(callback != nullptr);
-    assert(failureCallback != nullptr);
-
-    return get<Array, &JSON::asArray>(index, callback, failureCallback);
-}
-
-bool Array::getNull(unsigned index, GetCallback<std::nullptr_t> callback, FailureCallback failureCallback) const noexcept {
-    assert(callback != nullptr);
-    assert(failureCallback != nullptr);
-
-    return get<std::nullptr_t, &JSON::asNull>(index, callback, failureCallback);
-}
-
-bool Array::getBool(unsigned index, GetCallback<bool> callback, FailureCallback failureCallback) const noexcept {
-    assert(callback != nullptr);
-    assert(failureCallback != nullptr);
-
-    return get<bool, &JSON::asBool>(index, callback, failureCallback);
+const Array &Array::unsafeGetArray(const unsigned index) const noexcept {
+    return unsafeGet(index).unsafeAsArray();
 }
 
 bool Array::set(const unsigned index, String &&value) noexcept {
-    JSON *const json = getEntry(index);
-    if(json == nullptr) {
-        return false;
-    }
-
-    json->set(std::move(value));
-    return true;
+    return setRef(index, std::move(value));
 }
 
 bool Array::set(const unsigned index, const double value) noexcept {
-    JSON *const json = getEntry(index);
-    if(json == nullptr) {
-        return false;
-    }
-
-    json->set(value);
-    return true;
+    return setValue(index, value);
 }
 
-bool Array::set(const unsigned index, const int64_t value) noexcept {
-    JSON *const json = getEntry(index);
-    if(json == nullptr) {
-        return false;
-    }
-
-    json->set(value);
-    return true;
+bool Array::set(const unsigned index, const std::int64_t value) noexcept {
+    return setValue(index, value);
 }
 
-bool Array::set(const unsigned index, const uint64_t value) noexcept {
-    JSON *const json = getEntry(index);
-    if(json == nullptr) {
-        return false;
-    }
-
-    json->set(value);
-    return true;
+bool Array::set(const unsigned index, const std::uint64_t value) noexcept {
+    return setValue(index, value);
 }
 
 bool Array::set(const unsigned index, const int value) noexcept { 
@@ -292,91 +186,39 @@ bool Array::set(const unsigned index, const int value) noexcept {
 }
 
 bool Array::set(const unsigned index, const unsigned value) noexcept { 
-    return set(index, static_cast<uint64_t>(value));
+    return set(index, static_cast<std::uint64_t>(value));
 }
 
 bool Array::set(const unsigned index, Object &&value) noexcept {
-    JSON *const json = getEntry(index);
-    if(json == nullptr) {
-        return false;
-    }
-
-    json->set(std::move(value));
-    return true;
+    return setRef(index, std::move(value));
 }
 
 bool Array::set(const unsigned index, Array &&value) noexcept {
-    JSON *const json = getEntry(index);
-    if(json == nullptr) {
-        return false;
-    }
-
-    json->set(std::move(value));
-    return true;
+    return setRef(index, std::move(value));
 }
 
-bool Array::set(const unsigned index, std::nullptr_t) noexcept {
-    JSON *const json = getEntry(index);
-    if(json == nullptr) {
-        return false;
-    }
-
-    json->set();
-    return true;
+bool Array::set(const unsigned index, const std::nullptr_t) noexcept {
+    return setValue(index, nullptr);
 }
 
 bool Array::set(const unsigned index, const bool value) noexcept {
-    JSON *const json = getEntry(index);
-    if(json == nullptr) {
-        return false;
-    }
-
-    json->set(value);
-    return true;
+    return setValue(index, value);
 }
 
 bool Array::push(String &&value) noexcept {
-    try {
-        m_data.emplace_back();
-        JSON &json = m_data.back();
-        json.set(std::move(value));
-        return true;
-    } catch(...) {
-        return false;
-    }
+    return pushRef(std::move(value));
 }
 
 bool Array::push(const double value) noexcept {
-    try {
-        m_data.emplace_back();
-        JSON &json = m_data.back();
-        json.set(value);
-        return true;
-    } catch(...) {
-        return false;
-    }
+    return pushValue(value);
 }
 
-bool Array::push(const int64_t value) noexcept {
-    try {
-        m_data.emplace_back();
-        JSON &json = m_data.back();
-        json.set(value);
-        return true;
-    } catch(...) {
-        return false;
-    }
+bool Array::push(const std::int64_t value) noexcept {
+    return pushValue(value);
 }
 
-bool Array::push(const uint64_t value) noexcept {
-    try {
-        m_data.emplace_back();
-        JSON &json = m_data.back();
-        json.set(value);
-        return true;
-    } catch(...) {
-        return false;
-    }
+bool Array::push(const std::uint64_t value) noexcept {
+    return pushValue(value);
 }
 
 bool Array::push(const int value) noexcept {
@@ -388,57 +230,40 @@ bool Array::push(const unsigned value) noexcept {
 }
 
 bool Array::push(Object &&value) noexcept {
-    try {
-        m_data.emplace_back();
-        JSON &json = m_data.back();
-        json.set(std::move(value));
-        return true;
-    } catch(...) {
-        return false;
-    }
+    return pushRef(std::move(value));
 }
 
 bool Array::push(Array &&value) noexcept {
-    try {
-        m_data.emplace_back();
-        JSON &json = m_data.back();
-        json.set(std::move(value));
-        return true;
-    } catch(...) {
-        return false;
-    }
+    return pushRef(std::move(value));
 }
 
 bool Array::push(const std::nullptr_t) noexcept {
-    try {
-        m_data.emplace_back();
-        JSON &json = m_data.back();
-        json.set();
-        return true;
-    } catch(...) {
-        return false;
-    }
+    return pushValue(nullptr);
 }
 
 bool Array::push(const bool value) noexcept {
-    try {
-        m_data.emplace_back();
-        JSON &json = m_data.back();
-        json.set(value);
-        return true;
-    } catch(...) {
-        return false;
-    }
+    return pushValue(value);
 }
 
-Array::ValueType *Array::back() noexcept {
+Result<JSON&> Array::back() noexcept {
     if(size() == 0) {
-        return nullptr;
+        return Result<JSON&>::fromError(true);
     }
-    return &m_data.back();
+    return Result<JSON&>::fromRef(m_data.back());
 }
 
-Array::ValueType &Array::unsafeBack() noexcept {
+JSON &Array::unsafeBack() noexcept {
+    return m_data.back();
+}
+
+Result<const JSON&> Array::back() const noexcept {
+    if(size() == 0) {
+        return Result<const JSON&>::fromError(true);
+    }
+    return Result<const JSON&>::fromRef(m_data.back());
+}
+
+const JSON &Array::unsafeBack() const noexcept {
     return m_data.back();
 }
 
@@ -446,8 +271,16 @@ unsigned Array::size() const noexcept {
     return static_cast<unsigned>(m_data.size());
 }
 
-Array::ValueType *Array::operator[](const unsigned index) noexcept {
-    return getEntry(index);
+JSON &Array::operator[](const unsigned index) {
+    return *getEntry(index);
+}
+
+const JSON& Array::operator[](const unsigned index) const noexcept {
+    const JSON *const json = getEntry(index);
+
+    return json == nullptr
+        ? JSON::INVALID_JSON
+        : *json;
 }
 
 Array::Allocator Array::getAllocator() const noexcept { 
@@ -470,16 +303,70 @@ Array::const_iterator Array::end() const noexcept {
     return m_data.data() + size();
 }
 
-JSON *Array::getEntry(const unsigned index) noexcept { 
+JSON *Array::getEntry(const unsigned index) { 
     if(index >= size()) {
-        try {
-            m_data.resize(index + 1);
-        } catch(...) {
-            return nullptr;
-        }
+        m_data.resize(index + 1);
     }
 
     return &m_data[index];
+}
+
+const JSON *Array::getEntry(const unsigned index) const noexcept { 
+    if(index >= size()) {
+        return nullptr;
+    }
+
+    return &m_data[index];
+}
+
+void Array::destructor() noexcept {
+    m_data.~Container();
+}
+
+template<typename T>
+bool Array::setValue(const unsigned index, T value) noexcept {
+    JSON *const json = getEntry(index);
+    if(json == nullptr) {
+        return false;
+    }
+
+    json->set(value);
+    return true;
+}
+
+template<typename T>
+bool Array::setRef(const unsigned index, T &&value, typename std::enable_if<!std::is_lvalue_reference<T>::value>::type*) noexcept {
+    JSON *const json = getEntry(index);
+    if(json == nullptr) {
+        return false;
+    }
+
+    json->set(std::move(value));
+    return true;
+}
+
+template<typename T>
+bool Array::pushValue(T value) noexcept {
+    try {
+        m_data.emplace_back();
+        JSON &json = m_data.back();
+        json.set(value);
+        return true;
+    } catch(...) {
+        return false;
+    }
+}
+
+template<typename T>
+bool Array::pushRef(T &&value, typename std::enable_if<!std::is_lvalue_reference<T>::value>::type*) noexcept {
+    try {
+        m_data.emplace_back();
+        JSON &json = m_data.back();
+        json.set(std::move(value));
+        return true;
+    } catch(...) {
+        return false;
+    }
 }
 
 }

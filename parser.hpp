@@ -3,6 +3,7 @@
 #include <array>
 #include <memory>
 
+#include "error.hpp"
 #include "tokens.hpp"
 #include "allocator.hpp"
 #include "json.hpp"
@@ -10,38 +11,50 @@
 #include "object.hpp"
 #include "string.hpp"
 #include "counters.hpp"
+#include "result.hpp"
 
 namespace CPPJSON {
+
+typedef Result<JSON&, Error> ParserResult;
 
 class Parser {
     struct Arenas {
         Arena object;
         Arena array;
         Arena string;
+        Arena root;
     };
 
-    static void deallocateArenas(Arenas*) noexcept;
-    bool        allocateArenas()          noexcept;
+    struct RootNode {
+        JSON      json = {};
+        RootNode *next = nullptr;
+    };
 
-    typedef GeneralAllocator<Arenas> Allocator;
-    typedef std::unique_ptr<Arenas, decltype(&Parser::deallocateArenas)> ArenasPtr;
+    typedef GeneralAllocator<Arenas> ArenasAllocator;
+    typedef std::array<unsigned, 4> ArenaSizes;
 
-    ArenasPtr m_arenas = {nullptr, Parser::deallocateArenas};
-    JSON      m_json;
-    Counters  m_counters;
-    Tokens    m_tokens;
+    bool allocateArenas()                                               noexcept;
+    bool initArenas    (const ArenaSizes arenaSizes, unsigned maxNodes) noexcept;
+    bool reserveArenas (const ArenaSizes arenaCounts)                   noexcept;
+    static void deallocateArenas(Arenas*)                               noexcept;
 
-    bool initArenas       (const std::array<unsigned, 3> arenaSizes, unsigned maxNodes) noexcept;
-    bool reserveArenas    (const std::array<unsigned, 3> arenaCounts)                   noexcept;
+    typedef std::unique_ptr<Arenas, decltype(&deallocateArenas)> ArenasPtr;
+
+    RootNode *m_firstRoot   = nullptr;
+    RootNode *m_currentRoot = nullptr;
+    ArenasPtr m_arenas      = {nullptr, deallocateArenas};
+
+    RootNode *newRootNode() noexcept;
+    
     bool decodeStringToken(String&, Token&) noexcept;
-    bool parseToken       (JSON&, Tokens&)  noexcept;
-    bool parseString      (JSON&, Tokens&)  noexcept;
-    bool parseArray       (JSON&, Tokens&)  noexcept;
-    bool parseObject      (JSON&, Tokens&)  noexcept;
-    bool parseNumber      (JSON&, Tokens&)  noexcept;
+    Error parseToken       (JSON&, Tokens&)  noexcept;
+    Error parseString      (JSON&, Tokens&)  noexcept;
+    Error parseArray       (JSON&, Tokens&)  noexcept;
+    Error parseObject      (JSON&, Tokens&)  noexcept;
+    Error parseNumber      (JSON&, Tokens&)  noexcept;
     void parseNull        (JSON&, Tokens&)  noexcept;
     void parseBool        (JSON&, Tokens&)  noexcept;
-
+    
 public:
     Parser()                         noexcept;
     ~Parser()                        noexcept;
@@ -50,17 +63,19 @@ public:
     Parser &operator=(const Parser&)          = delete;
     Parser &operator=(Parser&&)      noexcept = delete;
     
-    JSON        &init     ()                             noexcept;
-    JSON        &parse    (const std::string&)           noexcept;
-    JSON        &parse    (const char*)                  noexcept;
-    JSON        &parse    (const char*, unsigned length) noexcept;
-    JSON        &parseFile(const std::string&)           noexcept;
-    JSON        &parseFile(const char*)                  noexcept;
-    const char  *getError ()                             noexcept;
+    ParserResult init     ()                             noexcept;
+    ParserResult parse    (const std::string&)           noexcept;
+    ParserResult parse    (const char*)                  noexcept;
+    ParserResult parse    (const char*, unsigned length) noexcept;
+    ParserResult parseFile(const std::string&)           noexcept;
+    ParserResult parseFile(const char*)                  noexcept;
 
     Object::Allocator getObjectAllocator() noexcept;
     Array::Allocator  getArrayAllocator()  noexcept;
     String::Allocator getStringAllocator() noexcept;
+
+    String createString(const std::string &);
+    String createString(const char *);
 };
 
 }

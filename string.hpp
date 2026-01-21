@@ -20,11 +20,14 @@ public:
         Allocator
     > Container;
 
+    typedef Container::const_iterator const_iterator;
+
     static const unsigned MINIMUM_CAPACITY; 
 
     String(const Allocator&);
     String(Allocator&&)       noexcept;
     String(String&&)          noexcept = default;
+    String(const String&);
     ~String()                 noexcept;
 
     ValueType           &operator[](unsigned)                   noexcept;
@@ -32,8 +35,8 @@ public:
     const String        &operator+=(const std::string&);
     const String        &operator= (const std::string&);
     bool                 operator==(const std::string&)   const;
-    String&              operator= (const String&);
-    String&              operator= (String&&)                   noexcept;
+    String &             operator= (const String&);
+    String &             operator= (String&&)                   noexcept;
     const String        &operator+=(const String&);
     bool                 operator==(const String&)        const;
     const String        &operator+=(const char*);
@@ -46,9 +49,13 @@ public:
     const String &operator+=(std::nullptr_t) = delete;
     const String &operator= (std::nullptr_t) = delete;
 
-    const char *getCStr     () const noexcept;
-    Container  &getContainer()       noexcept;
-    Allocator   getAllocator() const noexcept;   
+    const char       *getCString  () const noexcept;
+    Allocator         getAllocator() const noexcept;   
+
+    void destructor() noexcept;
+
+    const_iterator begin() const noexcept;
+    const_iterator end()   const noexcept;
 
 private:
     Container m_data;
