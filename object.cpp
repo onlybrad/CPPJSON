@@ -14,11 +14,11 @@ Arena Object::s_keyArena(Arena::MINIMUM_CAPACITY, Arena::INFINITE_NODES, "Object
 Object::KeyAllocator Object::s_keyAllocator(&s_keyArena);
 
 Object::Object(const Allocator &allocator) :
-m_data(0, std::hash<KeyType>(), std::equal_to<KeyType>(), allocator)
+m_data(0, StringHasher(), StringEqual(), allocator)
 {}
 
 Object::Object(Allocator &&allocator) noexcept : 
-m_data(0, std::hash<KeyType>(), std::equal_to<KeyType>(), std::move(allocator))
+m_data(0, StringHasher(), StringEqual(), std::move(allocator))
 {}
 
 Object::~Object() noexcept {}

@@ -3,22 +3,39 @@
 #include <cassert>
 #include <unordered_map>
 #include <cstdint>
+#include <cstring>
 
 #include "allocator.hpp"
 #include "string.hpp"
 #include "result.hpp"
 
-template<>
-struct std::hash<CPPJSON::String> {
-    std::size_t operator()(const CPPJSON::String &string) const noexcept {
-        assert(string.size() <= static_cast<std::size_t>(std::numeric_limits<unsigned>().max()));
+struct StringEqual final {
+    std::size_t operator()(const char *const lhs, const char *const rhs) const {
+        return lhs == rhs || std::strcmp(lhs, rhs) == 0;
+    }
+
+    std::size_t operator()(const std::string &lhs, const std::string &rhs) const {
+        return (*this)(lhs.c_str(), rhs.c_str());
+    }
+
+    std::size_t operator()(const CPPJSON::String &lhs, const CPPJSON::String &rhs) const {
+        return (*this)(lhs.getCString(), rhs.getCString());
+    }
+};
+
+struct StringHasher final {
+    typedef std::hash<const char*> hash_type;
+    typedef void                   is_transparent;
+
+    std::size_t operator()(const char *str) const {
+        assert(std::strlen(str) <= static_cast<std::size_t>(std::numeric_limits<unsigned>().max()));
 
         unsigned h = 0U;
-
-        for(const CPPJSON::String::ContainerType c : string) {
-            h += static_cast<unsigned>(c);
+        while(str != '\0') {
+            h += static_cast<unsigned>(*str);
             h += h << 10;
             h ^= h >> 6;
+            str++;
         }
 
         h += h << 3;
@@ -27,12 +44,13 @@ struct std::hash<CPPJSON::String> {
 
         return h;
     }
-};
 
-template<>
-struct std::equal_to<CPPJSON::String> {
-    bool operator()(const CPPJSON::String& lhs, const CPPJSON::String& rhs) const {
-        return lhs == rhs;
+    std::size_t operator()(const std::string &str) const {
+        return (*this)(str.c_str());
+    }
+
+    std::size_t operator()(const CPPJSON::String &str) const {
+        return (*this)(str.getCString());
     }
 };
 
@@ -54,8 +72,8 @@ public:
     typedef std::unordered_map<
         KeyType,
         ValueType,
-        std::hash<KeyType>,
-        std::equal_to<KeyType>,
+        StringHasher,
+        StringEqual,
         Allocator
     > Container;
 
