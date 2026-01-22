@@ -31,7 +31,7 @@ struct StringHasher final {
         assert(std::strlen(str) <= static_cast<std::size_t>(std::numeric_limits<unsigned>().max()));
 
         unsigned h = 0U;
-        while(str != '\0') {
+        while(*str != '\0') {
             h += static_cast<unsigned>(*str);
             h += h << 10;
             h ^= h >> 6;
