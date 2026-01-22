@@ -528,14 +528,18 @@ void Parser::deallocateArenas(Arenas *const arenas) noexcept {
 Parser::RootNode *Parser::newRootNode() noexcept {
     assert(m_arenas != nullptr);
 
-    RootNode *const rootNode = new (m_arenas->root.alloc<RootNode>(1U)) RootNode();
+    RootNode *const rootNode = m_arenas->root.alloc<RootNode>(1U);
     if(rootNode == nullptr) {
         return nullptr;
     }
+    new (rootNode) RootNode();
 
-    if(m_currentRoot != nullptr) {
+    if(m_firstRoot == nullptr) {
+        m_firstRoot = rootNode;
+    } else {
         m_currentRoot->next = rootNode;
     }
+
     m_currentRoot = rootNode;
 
     return rootNode;

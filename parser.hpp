@@ -40,20 +40,20 @@ class Parser {
 
     typedef std::unique_ptr<Arenas, decltype(&deallocateArenas)> ArenasPtr;
 
-    RootNode *m_firstRoot   = nullptr;
-    RootNode *m_currentRoot = nullptr;
-    ArenasPtr m_arenas      = {nullptr, deallocateArenas};
-
     RootNode *newRootNode() noexcept;
     
     bool decodeStringToken(String&, Token&) noexcept;
-    Error parseToken       (JSON&, Tokens&)  noexcept;
-    Error parseString      (JSON&, Tokens&)  noexcept;
-    Error parseArray       (JSON&, Tokens&)  noexcept;
-    Error parseObject      (JSON&, Tokens&)  noexcept;
-    Error parseNumber      (JSON&, Tokens&)  noexcept;
+    Error parseToken      (JSON&, Tokens&)  noexcept;
+    Error parseString     (JSON&, Tokens&)  noexcept;
+    Error parseArray      (JSON&, Tokens&)  noexcept;
+    Error parseObject     (JSON&, Tokens&)  noexcept;
+    Error parseNumber     (JSON&, Tokens&)  noexcept;
     void parseNull        (JSON&, Tokens&)  noexcept;
     void parseBool        (JSON&, Tokens&)  noexcept;
+
+    RootNode *m_firstRoot   = nullptr;
+    RootNode *m_currentRoot = nullptr;
+    ArenasPtr m_arenas      = {nullptr, deallocateArenas};
     
 public:
     Parser()                         noexcept;
