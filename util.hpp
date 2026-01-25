@@ -11,15 +11,16 @@ namespace Util {
 bool          isWhitespace   (char c)                                         noexcept;
 bool          isDelimiter    (char c)                                         noexcept;
 bool          isDigit        (char c)                                         noexcept;
-uint16_t      hexToUtf16     (const char *unicode, bool &success)             noexcept;
+bool          isControlChar  (char c)                                         noexcept;
+std::uint16_t hexToUtf16     (const char *unicode, bool &success)             noexcept;
 char*         utf16ToUtf8    (char *destination, uint16_t codepoint)          noexcept;
 char*         utf16ToUtf8    (char *destination, uint16_t high, uint16_t low) noexcept;
 bool          isValidUtf16   (std::uint16_t high)                             noexcept;
 bool          isValidUtf16   (std::uint16_t high, std::uint16_t low)          noexcept; 
 double        parseFloat64   (const char *str, bool &success)                 noexcept;
 long double   parseLongDouble(const char *str, bool &success)                 noexcept;
-uint64_t      parseUint64    (const char *str, bool &success)                 noexcept;
-int64_t       parseInt64     (const char *str, bool &success)                 noexcept;
+std::uint64_t parseUint64    (const char *str, bool &success)                 noexcept;
+std::int64_t  parseInt64     (const char *str, bool &success)                 noexcept;
 void          printBytes     (const void *buffer, const size_t size)          noexcept;
 std::uint64_t usecTimestamp  ()                                               noexcept;
 

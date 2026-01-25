@@ -47,84 +47,79 @@ Error Parser::parseToken(JSON &json, Tokens &tokens) noexcept {
 }
 
 bool Parser::decodeStringToken(String &str, Token &token) noexcept {
-    const char *const input_end     = token.value + token.length - 2;
-    const char       *input_current = token.value + 1;
+    const char *const inputEnd     = token.value + token.length - 2;
+    const char       *inputCurrent = token.value + 1;
     bool              escaping      = false;
 
-    while(input_current != input_end + 1) {
-        switch(*input_current) {
-            case '\b':
-            case '\f':
-            case '\n':
-            case '\r':
-            case '\t':
-                return false;
+    while(inputCurrent != inputEnd + 1) {
+        if(Util::isControlChar(*inputCurrent)) {
+            return false;
         }
 
         if(!escaping) {
-            if(*input_current == '\\') {
+            if(*inputCurrent == '\\') {
                 escaping = true;
-                input_current++;
+                inputCurrent++;
                 continue;
             }
 
-            str.push(*(input_current++));
+            str.push(*(inputCurrent++));
             continue;
         } 
         
-        switch(*input_current) {
+        switch(*inputCurrent) {
         case '"':
-            escaping    = false;
+            escaping = false;
             str.push('"');
-            input_current++;
+            inputCurrent++;
             continue;
         case 'b':
-            escaping    = false;
+            escaping = false;
             str.push('\b');
-            input_current++;
+            inputCurrent++;
             continue;
         case 'f':
-            escaping    = false;
+            escaping = false;
             str.push('\f');
-            input_current++;
+            inputCurrent++;
             continue;
         case 'n':
-            escaping    = false;
+            escaping = false;
             str.push('\n');
-            input_current++;
+            inputCurrent++;
             continue;
         case 'r':
-            escaping    = false;
+            escaping = false;
             str.push('\r');
-            input_current++;
+            inputCurrent++;
             continue;
         case 't':
-            escaping    = false;
+            escaping = false;
             str.push('\t');
-            input_current++;
+            inputCurrent++;
             continue;
         case '/':
-            escaping    = false;
+            escaping = false;
             str.push('/');
-            input_current++;
+            inputCurrent++;
             continue;
         case '\\': {
-            escaping    = false;
+            escaping = false;
             str.push('\\');
-            input_current++;
+            inputCurrent++;
             continue;
         }
         case 'u': {
             char utf8Str[5];
 
-            if(input_end - input_current < 4) {
+            if(inputEnd - inputCurrent < 4) {
                 return false;
             }
 
-            input_current++;
+            inputCurrent++;
 
             bool success;
-            const std::uint16_t high = Util::hexToUtf16(input_current, success);
+            const std::uint16_t high = Util::hexToUtf16(inputCurrent, success);
             //\u0000 is apparently an acceptable escaped character in JSON so if the parsing function returns 0 then it's either an error or \u0000. \0 would break cstrings so it's gonna be treated as an error as well.
             if(high == 0U) {
                 return false;    
@@ -132,23 +127,23 @@ bool Parser::decodeStringToken(String &str, Token &token) noexcept {
 
             if(Util::isValidUtf16(high)) {
                 str           += Util::utf16ToUtf8(utf8Str, high);
-                input_current += 4;
+                inputCurrent += 4;
                 escaping       = false;
                 continue;
             }
 
-            if(input_end - input_current < 9 || input_current[4] != '\\' || input_current[5] != 'u') {
+            if(inputEnd - inputCurrent < 9 || inputCurrent[4] != '\\' || inputCurrent[5] != 'u') {
                 return false;
             }
 
-            const std::uint16_t low = Util::hexToUtf16(input_current + 6, success);
+            const std::uint16_t low = Util::hexToUtf16(inputCurrent + 6, success);
             if(!success || !Util::isValidUtf16(high, low)) {
                 return false; 
             }
             
-            str           += Util::utf16ToUtf8(utf8Str, high, low);
-            input_current += 10;
-            escaping       = false;
+            str          += Util::utf16ToUtf8(utf8Str, high, low);
+            inputCurrent += 10;
+            escaping      = false;
             continue;
         }
         default:
