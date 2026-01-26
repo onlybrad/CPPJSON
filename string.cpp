@@ -107,9 +107,17 @@ void String::push(const ValueType value) {
     m_data.push_back(value);
 }
 
-const char *String::getCString() const noexcept { 
-    return m_data.c_str(); 
+unsigned String::toStringSize() const noexcept {
+    return unsigned(static_strlen("\"")) + size() + unsigned(static_strlen("\""));
 }
+
+void String::toString(std::string &string) const noexcept {
+    string.push_back('"');
+    string += getCString();
+    string.push_back('"');
+}
+
+const char *String::getCString() const noexcept { return m_data.c_str(); }
 
 String::Allocator String::getAllocator() const noexcept { 
     return m_data.get_allocator();

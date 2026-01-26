@@ -604,7 +604,72 @@ const JSON &Object::operator[](const String &key) const noexcept {
     }
 }
 
-Object::Allocator Object::getAllocator() const noexcept { 
+unsigned Object::toStringSize(const unsigned indentation, const unsigned level) const noexcept {
+    const unsigned entryCount = size();
+    unsigned stringSize = unsigned(static_strlen("{") + static_strlen("}"));
+
+    if(entryCount > 0U) {
+        const unsigned colonSize = indentation > 0U
+            ? unsigned(static_strlen(": "))
+            : unsigned(static_strlen(":"));
+
+        stringSize += (entryCount - 1U) * unsigned(static_strlen(","));
+        stringSize += entryCount        * colonSize;
+
+        if(indentation > 0U) {
+            const unsigned whiteSpace = indentation * level;
+            stringSize += unsigned(static_strlen("\n") + whiteSpace) * entryCount + unsigned(static_strlen("\n") + whiteSpace - indentation);
+        }
+    }
+
+    for(const KeyValueType &keyValue : *this) {
+        stringSize += keyValue.first.toStringSize();
+        stringSize += keyValue.second.toStringSize(indentation, level + 1U);
+    }
+
+    return stringSize;
+}
+
+void Object::toString(std::string &string, const unsigned indentation,const unsigned level) const noexcept {
+    string.push_back('{');
+
+    do {
+        if(size() == 0U) {
+            break;
+        }
+
+        if(indentation > 0U) {
+            std::size_t whitespaceSize = std::size_t(indentation * level);
+        
+            for(const KeyValueType &keyValue : *this) {
+                string.push_back('\n');
+                string.append(whitespaceSize, ' ');
+                keyValue.first.toString(string);
+                string.push_back(':');
+                string.push_back(' ');
+                keyValue.second.toString(string, indentation, level + 1U);
+                string.push_back(',');
+            }
+
+            string[string.size() - 1] = '\n';
+            whitespaceSize = std::size_t(indentation * (level - 1U));
+            string.append(whitespaceSize, ' ');
+            break;
+        }
+
+        for(const KeyValueType &keyValue : *this) {
+            keyValue.first.toString(string);
+            string.push_back(':');
+            keyValue.second.toString(string);
+            string.push_back(',');
+        }
+        string.pop_back();
+    } while(0);
+
+    string.push_back('}');
+}
+
+Object::Allocator Object::getAllocator() const noexcept {
     return m_data.get_allocator();
 }
 

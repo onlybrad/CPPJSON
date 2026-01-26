@@ -1,6 +1,11 @@
 #include <cstring>
+#include <cstdio>
+#include <cinttypes>
+#include <sstream>
 
+#include "parser.hpp"
 #include "json.hpp"
+#include "file.hpp"
 
 namespace CPPJSON {
 
@@ -624,6 +629,151 @@ JSON &JSON::operator=(const std::nullptr_t value) noexcept {
 
 JSON &JSON::operator=(const bool value) noexcept {
     return set(value);
+}
+
+void JSON::toString(std::string &string, const unsigned indentation, const unsigned level) const noexcept {
+    switch(m_type) {
+    case Type::STRING:
+        m_value.string.toString(string);
+        break;
+    
+    case Type::FLOAT64: {
+        const unsigned floatSize  = toStringSize(indentation, level);
+        const std::size_t oldSize = string.size();
+        string.append(static_cast<std::size_t>(floatSize), '\0');
+        const int count = sprintf(&string[oldSize], "%.*g", std::numeric_limits<double>::max_digits10, m_value.float64);
+        assert(count > 0);
+        (void)count;
+        break;
+    }
+
+    case Type::INT64: {
+        const unsigned int64Size  = toStringSize(indentation, level);
+        const std::size_t oldSize = string.size();
+
+        string.append(static_cast<std::size_t>(int64Size), '\0');
+        const int count = sprintf(&string[oldSize], "%" PRIi64, m_value.int64);
+        assert(count > 0);
+        (void)count;
+        break;
+    }
+
+    case Type::UINT64: {
+        const unsigned uint64Size = toStringSize(indentation, level);
+        const std::size_t oldSize = string.size();
+
+        string.append(static_cast<std::size_t>(uint64Size), '\0');
+        const int count = sprintf(&string[oldSize], "%" PRIu64, m_value.uint64);
+        assert(count > 0);
+        (void)count;
+        break;
+    }
+
+    case Type::ARRAY:
+        m_value.array.toString(string, indentation, level);
+        break;
+
+    case Type::OBJECT:
+        m_value.object.toString(string, indentation, level);
+        break;
+
+    case Type::NUL:
+        string += "null";
+        break;
+
+    case Type::BOOL:
+        string += m_value.boolean
+            ? "true"
+            : "false";
+    }
+}
+
+unsigned JSON::toStringSize(const unsigned indentation, const unsigned level) const noexcept {
+    switch(m_type) {
+    case Type::STRING:
+        return m_value.string.toStringSize();
+
+    case Type::FLOAT64:
+        return static_cast<unsigned>(std::snprintf(nullptr, 0, "%.*g", std::numeric_limits<double>::max_digits10, m_value.float64));
+
+    case Type::INT64:
+        return static_cast<unsigned>(std::snprintf(nullptr, 0, "%" PRIi64, m_value.int64));
+
+    case Type::UINT64:
+        return static_cast<unsigned>(std::snprintf(nullptr, 0, "%" PRIu64, m_value.uint64));
+
+    case Type::OBJECT:
+        return m_value.object.toStringSize(indentation, level);
+
+    case Type::ARRAY:
+        return m_value.array.toStringSize(indentation, level);
+
+    case Type::NUL:
+        return 4U;
+
+    case Type::BOOL:
+        return m_value.boolean
+            ? unsigned(static_strlen("true"))
+            : unsigned(static_strlen("false"));
+    
+    }
+
+    return 0U;
+}
+
+bool JSON::toFile(const std::string &path, const unsigned indentation) const {
+    assert(path[0] != '\0');
+
+    return toFile(path.c_str(), indentation);
+}
+
+bool JSON::toFile(const char *const path, const unsigned indentation) const {
+    assert(path != nullptr);
+    assert(path[0] != '\0');
+
+    std::string string = toString(indentation);
+    assert(string.size() < static_cast<std::size_t>(std::numeric_limits<unsigned>::max()));
+
+    FileContents fileContents;
+    fileContents.setData(&string[0], static_cast<unsigned>(string.size()));
+    const bool success = fileContents.put(path) == FileContents::Error::NONE;
+    fileContents.releaseData();
+
+    return success;
+}
+
+Result<std::string> JSON::format(const std::string &json, const unsigned indentation) {
+    return format(json.c_str(), indentation);
+}
+
+Result<std::string> JSON::format(const char *const json, const unsigned indentation) {
+    assert(json != nullptr);
+
+    Result<std::string> result = Result<std::string>::fromValue("");
+
+    Parser parser;
+    ParserResult parserResult = parser.parse(json);
+    if(!parserResult.isSuccess()) {
+        result.setError(true);
+        return result;
+    }
+
+    result.getRef() = parserResult->toString(indentation);
+    return result;
+}
+
+std::string JSON::toString(const unsigned indentation) const {
+    std::string string = "";
+
+    const unsigned totalSize = toStringSize(indentation);
+    assert(totalSize > 0U);
+
+    string.reserve(static_cast<std::size_t>(totalSize + 1U));
+    
+    toString(string, indentation, 1U);
+    assert(string.size() == static_cast<std::size_t>(totalSize));
+
+    return string;
 }
 
 JSON::Value::Value(const double value) noexcept :

@@ -4,13 +4,45 @@
     #include <windows.h>
 #endif
 #include <cstdio>
+#include <cstring>
 #include <cstdint>
 #include <climits>
 #include <cassert>
 
 namespace CPPJSON {
 
-static int fseek(std::FILE *const file, const int64_t offset, const int origin) {
+FileContents::Error FileContents::fopen(FILE **const file, const char *const path, const char *const mode) noexcept {
+    assert(path != NULL);
+    assert(mode != NULL);
+    assert(std::strcmp(mode, "rb") == 0 || std::strcmp(mode, "wb") == 0);
+
+#ifdef _WIN32
+    const int wideLength = MultiByteToWideChar(CP_UTF8, 0, path, -1, nullptr, 0);
+    if(wideLength == 0) {
+        return FileContents::Error::WIN32_API;
+    }
+
+    wchar_t *wpath;
+    try {
+        wpath = reinterpret_cast<wchar_t*>(FileContents::Allocator::s_allocate(static_cast<std::size_t>(wideLength) * sizeof(wchar_t)));
+    } catch(...) {
+        return FileContents::Error::MEMORY;
+    }
+
+    MultiByteToWideChar(CP_UTF8, 0, path, -1, wpath, wideLength);
+
+    *file = _wfopen(wpath, std::strcmp(mode, "rb") == 0 ? L"rb" : L"wb");
+    
+    FileContents::Allocator::s_deallocate(reinterpret_cast<unsigned char*>(wpath));
+#else
+    *file = std::fopen(path, mode);
+#endif
+    return *file == nullptr
+        ? FileContents::Error::FOPEN
+        : FileContents::Error::NONE;
+}
+
+int FileContents::fseek(std::FILE *const file, const int64_t offset, const int origin) noexcept {
 #ifdef _WIN32
     return _fseeki64(file, static_cast<__int64>(offset), origin);
 #elif LONG_MAX < LLONG_MAX
@@ -20,7 +52,7 @@ static int fseek(std::FILE *const file, const int64_t offset, const int origin) 
 #endif
 }
 
-static std::int64_t ftell(std::FILE *const file) {
+std::int64_t FileContents::ftell(std::FILE *const file) noexcept {
 #ifdef _WIN32
     return static_cast<std::int64_t>(_ftelli64(file));
 #elif LONG_MAX < LLONG_MAX
@@ -30,9 +62,28 @@ static std::int64_t ftell(std::FILE *const file) {
 #endif    
 }
 
-void FileContents::setData(unsigned char *const data, unsigned length) noexcept {
+void FileContents::setData(unsigned char *const data, const unsigned length) noexcept {
+    assert(data != nullptr || length == 0);
+
     m_data.reset(data);
     m_length = length;
+}
+
+void FileContents::setData(char *const data, const unsigned length) noexcept {
+    assert(data != nullptr || length == 0);
+
+    setData(reinterpret_cast<unsigned char*>(data), length);
+}
+
+void FileContents::setData(const std::nullptr_t) noexcept {
+    m_data.reset(nullptr);
+    m_length = 0U;
+}
+
+unsigned char *FileContents::releaseData() noexcept {
+   unsigned char *const data = m_data.release();
+   m_length = 0U;
+   return data;
 }
 
 unsigned char *FileContents::getData() noexcept {
@@ -51,47 +102,62 @@ unsigned FileContents::getLength() const noexcept {
     return m_data == nullptr ? 0U : m_length;
 }
 
+FileContents::Error FileContents::put(const std::string &path) const noexcept {
+    assert(path[0] != '\0');
+
+    return put(path.c_str());
+}
+
+FileContents::Error FileContents::put(const char *const path) const noexcept {
+    assert(path != nullptr);
+    assert(path[0] != '\0');
+
+    if(getLength() == 0) {
+        return FileContents::Error::NONE;
+    }
+
+    FILE *file;
+    const FileContents::Error error = FileContents::fopen(&file, path, "wb");
+    if(error != FileContents::Error::NONE) {
+        return error;
+    }
+
+    if(std::fwrite(
+        m_data.get(),
+        sizeof(m_data.get()[0]),
+        static_cast<std::size_t>(m_length),
+        file
+    ) != static_cast<std::size_t>(m_length)) {
+        std::fclose(file);
+        return FileContents::Error::FWRITE;
+    }
+
+    return std::fclose(file) != 0
+        ? FileContents::Error::FCLOSE
+        : FileContents::Error::NONE;
+}
+
 FileContents FileContents::get(const char *const path) noexcept {
     assert(path != nullptr);
     assert(path[0] != '\0');
 
     FileContents fileContents;
-#ifdef _WIN32
-    const int wideLength = MultiByteToWideChar(CP_UTF8, 0, path, -1, nullptr, 0);
-    if(wideLength == 0) {
-        fileContents.setError(FileContents::Error::WIN32_API);
-        return fileContents; 
-    }
 
-    wchar_t *wpath;
-    try {
-        wpath = reinterpret_cast<wchar_t*>(FileContents::Allocator::s_allocate(static_cast<std::size_t>(wideLength) * sizeof(wchar_t)));
-    } catch(...) {
-        fileContents.setError(FileContents::Error::MEMORY);
+    FILE *file;
+    const FileContents::Error error = FileContents::fopen(&file, path, "rb");
+    if(error != FileContents::Error::NONE) {
+        fileContents.setError(error);
         return fileContents;
     }
 
-    MultiByteToWideChar(CP_UTF8, 0, path, -1, wpath, wideLength);
+    std::unique_ptr<FILE, decltype(&std::fclose)> filePtr(file, std::fclose);
 
-    std::FILE *const file = _wfopen(wpath, L"rb");
-    
-    FileContents::Allocator::s_deallocate(reinterpret_cast<unsigned char*>(wpath));
-#else
-    std::FILE *const file = std::fopen(path, "rb");
-#endif
-    if(file == nullptr) {
-        fileContents.setError(FileContents::Error::FOPEN);
-        return fileContents;
-    }
-    
-    std::unique_ptr<FILE, decltype(&fclose)> filePtr(file, fclose);
-
-    if(CPPJSON::fseek(file, 0, SEEK_END) != 0) {
+    if(FileContents::fseek(file, 0, SEEK_END) != 0) {
         fileContents.setError(FileContents::Error::FSEEK);
         return fileContents;
     }
 
-    const std::int64_t length = CPPJSON::ftell(file);
+    const std::int64_t length = FileContents::ftell(file);
     if(length == -1) {
         fileContents.setError(FileContents::Error::FTELL);
         return fileContents;
@@ -102,7 +168,7 @@ FileContents FileContents::get(const char *const path) noexcept {
         return fileContents;
     }
 
-    if(CPPJSON::fseek(file, 0, SEEK_SET) != 0) {
+    if(FileContents::fseek(file, 0, SEEK_SET) != 0) {
         fileContents.setError(FileContents::Error::FSEEK);
         return fileContents;
     }
@@ -116,7 +182,12 @@ FileContents FileContents::get(const char *const path) noexcept {
         return fileContents;
     }
 
-    if(std::fread(data, sizeof(unsigned char), static_cast<std::size_t>(length), file) !=  static_cast<std::size_t>(length)) {
+    if(std::fread(
+        data,
+        sizeof(data[0]),
+        static_cast<std::size_t>(length),
+        file
+    ) !=  static_cast<std::size_t>(length)) {
         fileContents.setError(FileContents::Error::FREAD);
         FileContents::Allocator::s_deallocate(data);
         return fileContents;
@@ -138,5 +209,6 @@ void FileContents::setError(const Error error) noexcept {
     m_data.reset();
     m_error = error;
 }
+
 
 }
