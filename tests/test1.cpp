@@ -2,6 +2,7 @@
 #include <cassert>
 #include <cstdlib>
 #include <iostream>
+
 #include "../cppjson.hpp"
 
 using namespace CPPJSON;

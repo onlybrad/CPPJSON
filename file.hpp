@@ -21,8 +21,10 @@ public:
         MEMORY,
         FOPEN,
         FREAD,
+        FWRITE,
         FSEEK,
-        FTELL
+        FTELL,
+        FCLOSE
     };
 
 private:
@@ -36,6 +38,10 @@ private:
         unsigned m_length;
     };
 
+    static Error        fopen(FILE **file, const char *const path, const char *const mode) noexcept;
+    static int          fseek(std::FILE*, int64_t offset, int origin)                      noexcept;
+    static std::int64_t ftell(std::FILE*)                                                  noexcept;
+
 public:
     FileContents()                               noexcept = default;
     FileContents(const FileContents&)                     = delete;
@@ -43,16 +49,22 @@ public:
     FileContents &operator=(const FileContents&)          = delete;
     FileContents &operator=(FileContents&&)      noexcept = default;
 
-    void setData (unsigned char *data, unsigned length) noexcept;
-    void setError(Error error)                      noexcept;
-
+    void setData    (unsigned char *data, unsigned length = 0U) noexcept;
+    void setData    (char *data,          unsigned length = 0U) noexcept;
+    void setData    (std::nullptr_t)                            noexcept;
+    void setError   (Error error)                               noexcept;
+    
+    unsigned char       *releaseData()     noexcept;
     unsigned char       *getData  ()       noexcept;
     const unsigned char *getData  () const noexcept;
     Error                getError () const noexcept;
     unsigned             getLength() const noexcept;
 
-    static FileContents get(const std::string&) noexcept;
-    static FileContents get(const char*)        noexcept;
+    Error put(const std::string &path) const noexcept;
+    Error put(const char *path)        const noexcept;
+
+    static FileContents get(const std::string& path) noexcept;
+    static FileContents get(const char* path)        noexcept;
 };
 
 }

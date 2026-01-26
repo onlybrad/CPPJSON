@@ -30,24 +30,27 @@ public:
     String(const String&);
     ~String()                 noexcept;
 
-    ValueType           &operator[](unsigned)                   noexcept;
-    const ValueType     &operator[](unsigned)             const noexcept;
-    const String        &operator+=(const std::string&);
-    const String        &operator= (const std::string&);
-    bool                 operator==(const std::string&)   const;
-    String &             operator= (const String&);
-    String &             operator= (String&&)                   noexcept;
-    const String        &operator+=(const String&);
-    bool                 operator==(const String&)        const;
-    const String        &operator+=(const char*);
-    const String        &operator= (const char*);
-    bool                 operator==(const char*)          const;
-    unsigned             size      ()                     const noexcept;
-    bool                 reserve   (unsigned);
-    void                 push      (ValueType);
+    ValueType       &operator[](unsigned)                  noexcept;
+    const ValueType &operator[](unsigned)            const noexcept;
+    const String    &operator+=(const std::string&);
+    const String    &operator= (const std::string&);
+    bool             operator==(const std::string&)  const;
+    String &         operator= (const String&);
+    String &         operator= (String&&)                   noexcept;
+    const String    &operator+=(const String&);
+    bool             operator==(const String&)       const;
+    const String    &operator+=(const char*);
+    const String    &operator= (const char*);
+    bool             operator==(const char*)         const;
+    unsigned         size      ()                    const noexcept;
+    bool             reserve   (unsigned);
+    void             push      (ValueType);
 
     const String &operator+=(std::nullptr_t) = delete;
     const String &operator= (std::nullptr_t) = delete;
+
+    unsigned toStringSize()              const noexcept;
+    void     toString    (std::string&) const noexcept;
 
     const char       *getCString  () const noexcept;
     Allocator         getAllocator() const noexcept;   

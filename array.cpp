@@ -283,7 +283,63 @@ const JSON& Array::operator[](const unsigned index) const noexcept {
         : *json;
 }
 
-Array::Allocator Array::getAllocator() const noexcept { 
+unsigned Array::toStringSize(const unsigned indentation, const unsigned level) const noexcept {
+    const unsigned arraySize = size();
+    unsigned stringSize = unsigned(static_strlen("[") + static_strlen("]"));
+
+    if(arraySize > 0U) {
+        stringSize += (arraySize - 1U) * unsigned(static_strlen(","));
+
+        if(indentation > 0U) {
+            const unsigned whitespaceSize = indentation * level;
+            stringSize += unsigned(static_strlen("\n") + whitespaceSize) * arraySize + unsigned(static_strlen("\n") + whitespaceSize - indentation);
+        }
+    }
+
+    for(const JSON &json : *this) {
+        stringSize += json.toStringSize(indentation, level + 1U);
+    }
+
+    return stringSize;
+}
+
+void Array::toString(std::string &string, const unsigned indentation, const unsigned level) const noexcept {
+    string.push_back('[');
+
+    do {
+        if(size() == 0U) {
+            break;
+        }
+
+        if(indentation > 0U) {
+            std::size_t whitespaceSize = std::size_t(indentation * level);
+
+            for(const JSON &json : *this) {
+                string.push_back('\n');
+                string.append(whitespaceSize, ' ');
+                json.toString(string, indentation, level + 1U);
+                string.push_back(',');
+            }
+
+            string[string.size() - 1] = '\n';
+            whitespaceSize = std::size_t(indentation * (level - 1U));
+            string.append(whitespaceSize, ' ');
+            break;
+        }
+
+        for(const JSON &json : *this) {
+            json.toString(string, indentation, level);
+            string.push_back(',');
+        }
+        string.pop_back();
+
+    } while(0);
+
+    string.push_back(']');
+}
+
+
+Array::Allocator Array::getAllocator() const noexcept {
     return m_data.get_allocator();
 }
 

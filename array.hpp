@@ -97,6 +97,9 @@ public:
     JSON&       operator[](unsigned);
     const JSON& operator[](unsigned) const noexcept;
 
+    void toString        (std::string&, unsigned indentation, unsigned level) const noexcept;
+    unsigned toStringSize(unsigned indentation, unsigned level)               const noexcept;
+
     Allocator getAllocator() const noexcept;
 
     iterator       begin()       noexcept;

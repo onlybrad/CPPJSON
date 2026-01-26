@@ -205,6 +205,15 @@ public:
     JSON &operator=(std::nullptr_t)  noexcept;
     JSON &operator=(bool)            noexcept;
 
+    void        toString    (std::string&, unsigned indentation = 0U, unsigned level = 0U) const noexcept;
+    std::string toString    (unsigned indentation = 0U)                                    const;
+    unsigned    toStringSize(unsigned indentation = 0U, unsigned level = 1U)               const noexcept;
+    bool        toFile      (const std::string&,        unsigned indentation = 0U)         const;
+    bool        toFile      (const char*,               unsigned indentation = 0U)         const;
+    
+    static Result<std::string> format(const std::string&, unsigned indentation = 0U);
+    static Result<std::string> format(const char*,        unsigned indentation = 0U);
+
 private:
     Type  m_type = Type::NUL;
     Value m_value;

@@ -5,6 +5,10 @@
 #include <limits>
 #include "result.hpp"
 
+#ifndef static_strlen
+    #define static_strlen(STR) (sizeof(STR) - 1)
+#endif
+
 namespace CPPJSON {
 namespace Util {
 
