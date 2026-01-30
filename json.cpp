@@ -640,8 +640,9 @@ void JSON::toString(std::string &string, const unsigned indentation, const unsig
     case Type::FLOAT64: {
         const unsigned floatSize  = toStringSize(indentation, level);
         const std::size_t oldSize = string.size();
+
         string.append(static_cast<std::size_t>(floatSize), '\0');
-        const int count = sprintf(&string[oldSize], "%.*g", std::numeric_limits<double>::max_digits10, m_value.float64);
+        const int count = std::sprintf(&string[oldSize], "%.*g", std::numeric_limits<double>::max_digits10, m_value.float64);
         assert(count > 0);
         (void)count;
         break;
@@ -652,7 +653,7 @@ void JSON::toString(std::string &string, const unsigned indentation, const unsig
         const std::size_t oldSize = string.size();
 
         string.append(static_cast<std::size_t>(int64Size), '\0');
-        const int count = sprintf(&string[oldSize], "%" PRIi64, m_value.int64);
+        const int count = std::sprintf(&string[oldSize], "%" PRIi64, m_value.int64);
         assert(count > 0);
         (void)count;
         break;
@@ -663,7 +664,7 @@ void JSON::toString(std::string &string, const unsigned indentation, const unsig
         const std::size_t oldSize = string.size();
 
         string.append(static_cast<std::size_t>(uint64Size), '\0');
-        const int count = sprintf(&string[oldSize], "%" PRIu64, m_value.uint64);
+        const int count = std::sprintf(&string[oldSize], "%" PRIu64, m_value.uint64);
         assert(count > 0);
         (void)count;
         break;
@@ -709,7 +710,7 @@ unsigned JSON::toStringSize(const unsigned indentation, const unsigned level) co
         return m_value.array.toStringSize(indentation, level);
 
     case Type::NUL:
-        return 4U;
+        return unsigned(static_strlen("null"));
 
     case Type::BOOL:
         return m_value.boolean

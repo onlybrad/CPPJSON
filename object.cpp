@@ -633,40 +633,38 @@ unsigned Object::toStringSize(const unsigned indentation, const unsigned level) 
 void Object::toString(std::string &string, const unsigned indentation,const unsigned level) const noexcept {
     string.push_back('{');
 
-    do {
-        if(size() == 0U) {
-            break;
-        }
+    if(size() == 0U) {
+        string.push_back('}');
+        return;
+    }
 
-        if(indentation > 0U) {
-            std::size_t whitespaceSize = std::size_t(indentation * level);
-        
-            for(const KeyValueType &keyValue : *this) {
-                string.push_back('\n');
-                string.append(whitespaceSize, ' ');
-                keyValue.first.toString(string);
-                string.push_back(':');
-                string.push_back(' ');
-                keyValue.second.toString(string, indentation, level + 1U);
-                string.push_back(',');
-            }
-
-            string[string.size() - 1] = '\n';
-            whitespaceSize = std::size_t(indentation * (level - 1U));
-            string.append(whitespaceSize, ' ');
-            break;
-        }
-
+    if(indentation > 0U) {
+        std::size_t whitespaceSize = std::size_t(indentation * level);
+    
         for(const KeyValueType &keyValue : *this) {
+            string.push_back('\n');
+            string.append(whitespaceSize, ' ');
             keyValue.first.toString(string);
             string.push_back(':');
-            keyValue.second.toString(string);
+            string.push_back(' ');
+            keyValue.second.toString(string, indentation, level + 1U);
             string.push_back(',');
         }
-        string.pop_back();
-    } while(0);
 
-    string.push_back('}');
+        string[string.size() - 1] = '\n';
+        whitespaceSize = std::size_t(indentation * (level - 1U));
+        string.append(whitespaceSize, ' ');
+        string.push_back('}');
+        return;
+    }
+
+    for(const KeyValueType &keyValue : *this) {
+        keyValue.first.toString(string);
+        string.push_back(':');
+        keyValue.second.toString(string);
+        string.push_back(',');
+    }
+    string[string.size() - 1] = '}';
 }
 
 Object::Allocator Object::getAllocator() const noexcept {

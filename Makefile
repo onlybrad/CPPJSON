@@ -19,7 +19,7 @@ test2_release.exe: ./tests/test2.cpp $(SOURCE)
 	$(CC) $(FLAGS) $(STD) -D NDEBUG -O3 -o test2_release ./tests/test2.cpp $(SOURCE)
 
 test3.exe: ./tests/test3.cpp $(SOURCE)
-	$(CC) $(FLOAGS) $(STD) -g -Og -o test3 ./tests/test3.cpp $(SOURCE)
+	$(CC) $(FLAGS) $(STD) -g -Og -o test3 ./tests/test3.cpp $(SOURCE)
 
 cleanup:
 	rm *.o
