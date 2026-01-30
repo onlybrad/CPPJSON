@@ -306,36 +306,33 @@ unsigned Array::toStringSize(const unsigned indentation, const unsigned level) c
 void Array::toString(std::string &string, const unsigned indentation, const unsigned level) const noexcept {
     string.push_back('[');
 
-    do {
-        if(size() == 0U) {
-            break;
-        }
+    if(size() == 0U) {
+        string.push_back(']');
+        return;
+    }
 
-        if(indentation > 0U) {
-            std::size_t whitespaceSize = std::size_t(indentation * level);
-
-            for(const JSON &json : *this) {
-                string.push_back('\n');
-                string.append(whitespaceSize, ' ');
-                json.toString(string, indentation, level + 1U);
-                string.push_back(',');
-            }
-
-            string[string.size() - 1] = '\n';
-            whitespaceSize = std::size_t(indentation * (level - 1U));
-            string.append(whitespaceSize, ' ');
-            break;
-        }
+    if(indentation > 0U) {
+        std::size_t whitespaceSize = std::size_t(indentation * level);
 
         for(const JSON &json : *this) {
-            json.toString(string, indentation, level);
+            string.push_back('\n');
+            string.append(whitespaceSize, ' ');
+            json.toString(string, indentation, level + 1U);
             string.push_back(',');
         }
-        string.pop_back();
 
-    } while(0);
+        string[string.size() - 1] = '\n';
+        whitespaceSize = std::size_t(indentation * (level - 1U));
+        string.append(whitespaceSize, ' ');
+        string.push_back(']');
+        return;
+    }
 
-    string.push_back(']');
+    for(const JSON &json : *this) {
+        json.toString(string, indentation, level);
+        string.push_back(',');
+    }
+    string[string.size() - 1] = ']';
 }
 
 
