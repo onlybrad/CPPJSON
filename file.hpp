@@ -39,7 +39,7 @@ private:
     };
 
     static Error        fopen(FILE **file, const char *const path, const char *const mode) noexcept;
-    static int          fseek(std::FILE*, int64_t offset, int origin)                      noexcept;
+    static int          fseek(std::FILE*, std::int64_t offset, int origin)                      noexcept;
     static std::int64_t ftell(std::FILE*)                                                  noexcept;
 
 public:

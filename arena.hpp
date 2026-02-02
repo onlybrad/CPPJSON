@@ -64,16 +64,16 @@ template<typename T>
 bool Arena::reserve(const unsigned count) noexcept {
     assert(count > 0U);
 
-    const Result<unsigned> multResult = Util::safeMult(count, static_cast<unsigned>(sizeof(T)));
+    const Result<unsigned> multResult = Util::safeMult(count, unsigned(sizeof(T)));
     if(!multResult.isSuccess()) {
         return false;
     }
     const unsigned totalSize = multResult.getValue();
 
-    const std::uintptr_t alignment      = static_cast<std::uintptr_t>(alignof(T)),
+    const std::uintptr_t alignment      = std::uintptr_t(alignof(T)),
                          startAddress   = reinterpret_cast<std::uintptr_t>(m_current->getData() + m_current->offset),
                          alignedAddress = (startAddress + (alignment - 1U)) & ~(alignment - 1U);
-    unsigned             padding        = static_cast<unsigned>(alignedAddress - startAddress);
+    unsigned             padding        = unsigned(alignedAddress - startAddress);
 
     if(m_current->offset + padding + totalSize <= m_current->size) {
         return true;
@@ -86,16 +86,16 @@ template<typename T>
 T *Arena::alloc(const unsigned count) noexcept {
     assert(count > 0U);
 
-    const Result<unsigned> multResult = Util::safeMult(count, static_cast<unsigned>(sizeof(T)));
+    const Result<unsigned> multResult = Util::safeMult(count, unsigned(sizeof(T)));
     if(!multResult.isSuccess()) {
         return nullptr;
     }
     const unsigned totalSize = multResult.getValue();
 
-    const std::uintptr_t alignment      = static_cast<std::uintptr_t>(alignof(T));
+    const std::uintptr_t alignment      = std::uintptr_t(alignof(T));
     const std::uintptr_t startAddress   = reinterpret_cast<std::uintptr_t>(m_current->getData() + m_current->offset);
     std::uintptr_t       alignedAddress = (startAddress + (alignment - 1U)) & ~(alignment - 1U);
-    unsigned             padding        = static_cast<unsigned>(alignedAddress - startAddress);
+    unsigned             padding        = unsigned(alignedAddress - startAddress);
 
     if(m_current->offset + padding + totalSize > m_current->size) {
         if(!createNextNode(totalSize)) {

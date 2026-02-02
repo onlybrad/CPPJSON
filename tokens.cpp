@@ -12,7 +12,7 @@ bool Tokens::reserve(unsigned capacity) noexcept {
     }
 
     try {
-        data.reserve(static_cast<std::size_t>(capacity));
+        data.reserve(std::size_t(capacity));
         return true;
     } catch(...) {
         return false;

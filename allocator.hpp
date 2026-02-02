@@ -65,11 +65,11 @@ T *GeneralAllocator<T>::allocate(const size_type count) {
         return nullptr;
     }
 
-    if(count > std::numeric_limits<size_type>::max() / static_cast<size_type>(sizeof(T))) {
+    if(count > std::numeric_limits<size_type>::max() / size_type(sizeof(T))) {
         throw std::bad_array_new_length();
     }
 
-    T *const data = static_cast<T*>(CPPJSON::malloc(static_cast<std::size_t>(count) * sizeof(T)));
+    T *const data = static_cast<T*>(CPPJSON::malloc(std::size_t(count) * sizeof(T)));
     if(data == nullptr) {
         throw std::bad_alloc();
     }
@@ -162,11 +162,11 @@ T *ArenaAllocator<T>::allocate(size_type count) {
         count = 1;
     }
 
-    if(count > static_cast<size_type>(std::numeric_limits<unsigned>::max())) {
+    if(count > size_type(std::numeric_limits<unsigned>::max())) {
         throw std::bad_alloc();
     }
 
-    T *const data = m_arena->alloc<T>(static_cast<unsigned>(count));
+    T *const data = m_arena->alloc<T>(unsigned(count));
     if(data == nullptr) {
         throw std::bad_alloc();
     }

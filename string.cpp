@@ -86,7 +86,7 @@ bool String::operator==(const char *const str) const {
 }
 
 unsigned String::size() const noexcept {
-    return static_cast<unsigned>(m_data.size());
+    return unsigned(m_data.size());
 }
 
 bool String::reserve(unsigned capacity) {
@@ -95,7 +95,7 @@ bool String::reserve(unsigned capacity) {
     }
 
     try {
-        m_data.reserve(static_cast<std::size_t>(capacity));
+        m_data.reserve(std::size_t(capacity));
     } catch (...) {
         return false;
     }

@@ -154,8 +154,8 @@ public:
 
     Result<const String&>  asString () const noexcept;
     Result<double>         asFloat64() const noexcept;
-    Result<int64_t>        asInt64  () const noexcept;
-    Result<uint64_t>       asUint64 () const noexcept;
+    Result<std::int64_t>   asInt64  () const noexcept;
+    Result<std::uint64_t>  asUint64 () const noexcept;
     Result<const Object&>  asObject () const noexcept;
     Result<const Array&>   asArray  () const noexcept;
     Result<std::nullptr_t> asNull   () const noexcept;
@@ -167,8 +167,8 @@ public:
     
     const String  &unsafeAsString () const noexcept;
     double         unsafeAsFloat64() const noexcept;
-    int64_t        unsafeAsInt64  () const noexcept;
-    uint64_t       unsafeAsUint64 () const noexcept;
+    std::int64_t   unsafeAsInt64  () const noexcept;
+    std::uint64_t  unsafeAsUint64 () const noexcept;
     const Object  &unsafeAsObject () const noexcept;
     const Array   &unsafeAsArray  () const noexcept;
     std::nullptr_t unsafeAsNull   () const noexcept;
@@ -184,8 +184,8 @@ public:
     JSON &set(JSON&&);
     JSON &set(String&&);
     JSON &set(double)                   noexcept;
-    JSON &set(int64_t)                  noexcept;
-    JSON &set(uint64_t)                 noexcept;
+    JSON &set(std::int64_t)             noexcept;
+    JSON &set(std::uint64_t)            noexcept;
     JSON &set(int)                      noexcept;
     JSON &set(unsigned)                 noexcept;
     JSON &set(Object&&);
@@ -196,8 +196,8 @@ public:
     JSON &operator=(const String&);     
     JSON &operator=(String&&);
     JSON &operator=(double)          noexcept;
-    JSON &operator=(int64_t)         noexcept;
-    JSON &operator=(uint64_t)        noexcept;
+    JSON &operator=(std::int64_t)    noexcept;
+    JSON &operator=(std::uint64_t)   noexcept;
     JSON &operator=(int)             noexcept;
     JSON &operator=(unsigned)        noexcept;
     JSON &operator=(Object&&);

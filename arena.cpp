@@ -68,18 +68,18 @@ char *Arena::strdup(const char *const str, unsigned &length) noexcept {
     assert(str != nullptr);
 
     const std::size_t sizetLength = std::strlen(str);
-    if(sizetLength >= static_cast<std::size_t>(std::numeric_limits<unsigned>::max())) {
+    if(sizetLength >= std::size_t(std::numeric_limits<unsigned>::max())) {
         length = 0U;
         return nullptr;
     }
 
-    char *const copy = static_cast<char*>(alloc<char>(static_cast<unsigned>(sizetLength) + 1U));
+    char *const copy = static_cast<char*>(alloc<char>(unsigned(sizetLength) + 1U));
     if(copy == nullptr) {
         length = 0U;
         return nullptr;
     }
 
-    length = static_cast<unsigned>(sizetLength);
+    length = unsigned(sizetLength);
     return std::strcpy(copy, str);
 }
 
@@ -95,7 +95,7 @@ bool Arena::createNextNode(const unsigned objectSize) {
 
     unsigned nodeSize = m_current->size;
     if(nodeSize < objectSize) {
-        if(nodeSize > static_cast<unsigned>(std::numeric_limits<decltype(nodeSize)>::max()) / 2U) {
+        if(nodeSize > unsigned(std::numeric_limits<decltype(nodeSize)>::max()) / 2U) {
             nodeSize = objectSize;
         } else do {
             nodeSize *= 2U;
