@@ -18,10 +18,10 @@ Result<double> JSON::asValue<double, JSON::Type::FLOAT64, nullptr>() const noexc
         return Result<double>::fromValue(m_value.float64);
 
     case Type::INT64:
-        return Result<double>::fromValue(static_cast<double>(m_value.int64));
+        return Result<double>::fromValue(double(m_value.int64));
     
     case Type::UINT64:
-        return Result<double>::fromValue(static_cast<double>(m_value.uint64));
+        return Result<double>::fromValue(double(m_value.uint64));
 
     default:
         return Result<double>::fromError(true);
@@ -30,15 +30,15 @@ Result<double> JSON::asValue<double, JSON::Type::FLOAT64, nullptr>() const noexc
 
 template<>
 Result<std::int64_t> JSON::asValue<std::int64_t, JSON::Type::INT64, nullptr>() const noexcept {
-    constexpr double minInt64d = static_cast<double>(std::numeric_limits<std::int64_t>().min());
-    constexpr double maxInt64d = static_cast<double>(std::numeric_limits<std::int64_t>().max());
-    constexpr std::uint64_t maxInt64u = static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>().max());
+    constexpr double minInt64d = double(std::numeric_limits<std::int64_t>().min());
+    constexpr double maxInt64d = double(std::numeric_limits<std::int64_t>().max());
+    constexpr std::uint64_t maxInt64u = std::uint64_t(std::numeric_limits<std::int64_t>().max());
 
     switch(m_type) {    
     case Type::FLOAT64:
         return m_value.float64 < minInt64d || m_value.float64 > maxInt64d 
             ? Result<std::int64_t>::fromError(true)
-            : Result<std::int64_t>::fromValue(static_cast<std::int64_t>(m_value.float64));
+            : Result<std::int64_t>::fromValue(std::int64_t(m_value.float64));
 
     case Type::INT64:
         return Result<std::int64_t>::fromValue(m_value.int64);
@@ -46,7 +46,7 @@ Result<std::int64_t> JSON::asValue<std::int64_t, JSON::Type::INT64, nullptr>() c
     case Type::UINT64:
         return m_value.uint64 > maxInt64u
             ? Result<std::int64_t>::fromError(true)
-            : Result<std::int64_t>::fromValue(static_cast<std::int64_t>(m_value.uint64));
+            : Result<std::int64_t>::fromValue(std::int64_t(m_value.uint64));
 
     default:
         return Result<std::int64_t>::fromError(true);
@@ -55,18 +55,18 @@ Result<std::int64_t> JSON::asValue<std::int64_t, JSON::Type::INT64, nullptr>() c
 
 template<>
 Result<std::uint64_t> JSON::asValue<std::uint64_t, JSON::Type::UINT64, nullptr>() const noexcept {
-    constexpr double maxUint64 = static_cast<double>(std::numeric_limits<std::uint64_t>().max());
+    constexpr double maxUint64 = double(std::numeric_limits<std::uint64_t>().max());
 
     switch(m_type) {
     case Type::FLOAT64:
         return m_value.float64 < 0.0 || m_value.float64 > maxUint64
             ? Result<std::uint64_t>::fromError(true)
-            : Result<std::uint64_t>::fromValue(static_cast<std::uint64_t>(m_value.float64));
+            : Result<std::uint64_t>::fromValue(std::uint64_t(m_value.float64));
 
     case Type::INT64:
         return m_value.int64 < 0
             ? Result<std::uint64_t>::fromError(true)
-            : Result<std::uint64_t>::fromValue(static_cast<std::uint64_t>(m_value.int64));
+            : Result<std::uint64_t>::fromValue(std::uint64_t(m_value.int64));
     
     case Type::UINT64:
         return Result<std::uint64_t>::fromValue(m_value.uint64);
@@ -102,11 +102,11 @@ m_value(value)
 {}
 
 JSON::JSON(const int value) noexcept :
-JSON(static_cast<int64_t>(value))
+JSON(std::int64_t(value))
 {}
 
 JSON::JSON(const unsigned value) noexcept :
-JSON(static_cast<uint64_t>(value))
+JSON(std::uint64_t(value))
 {}
 
 JSON::JSON(const bool value) noexcept : 
@@ -156,7 +156,7 @@ bool JSON::operator==(const JSON &json) const noexcept {
 
         return intValue < 0
             ? false
-            : static_cast<std::uint64_t>(intValue) == uintValue;
+            : std::uint64_t(intValue) == uintValue;
     }
 
     if(m_type != json.m_type) {
@@ -347,34 +347,34 @@ double JSON::unsafeAsFloat64() const noexcept {
         return m_value.float64;
 
     case Type::INT64:
-        return static_cast<double>(m_value.int64);
+        return double(m_value.int64);
 
     case Type::UINT64:
-        return static_cast<double>(m_value.uint64);
+        return double(m_value.uint64);
     }
 }
 
-int64_t JSON::unsafeAsInt64() const noexcept {
+std::int64_t JSON::unsafeAsInt64() const noexcept {
     switch(m_type) {
     case Type::FLOAT64:
-        return static_cast<std::int64_t>(m_value.float64);
+        return std::int64_t(m_value.float64);
 
     case Type::INT64:
     default:
         return m_value.int64;
 
     case Type::UINT64:
-        return static_cast<std::int64_t>(m_value.uint64);
+        return std::int64_t(m_value.uint64);
     }
 }
 
-uint64_t JSON::unsafeAsUint64() const noexcept {
+std::uint64_t JSON::unsafeAsUint64() const noexcept {
     switch(m_type) {
     case Type::FLOAT64:
-        return static_cast<std::uint64_t>(m_value.float64);
+        return std::uint64_t(m_value.float64);
 
     case Type::INT64:
-        return static_cast<std::uint64_t>(m_value.int64);
+        return std::uint64_t(m_value.int64);
 
     case Type::UINT64:
     default:
@@ -525,7 +525,7 @@ JSON &JSON::set(const double value) noexcept {
     return *this;
 }
 
-JSON &JSON::set(const int64_t value) noexcept {
+JSON &JSON::set(const std::int64_t value) noexcept {
     destructor();
     m_type  = Type::INT64;
     m_value = value;
@@ -533,7 +533,7 @@ JSON &JSON::set(const int64_t value) noexcept {
     return *this;
 }
 
-JSON &JSON::set(const uint64_t value) noexcept {
+JSON &JSON::set(const std::uint64_t value) noexcept {
     destructor();
     m_type  = Type::UINT64;
     m_value = value;
@@ -542,11 +542,11 @@ JSON &JSON::set(const uint64_t value) noexcept {
 }
 
 JSON &JSON::set(const int value) noexcept {
-    return set(static_cast<int64_t>(value));
+    return set(std::int64_t(value));
 }
 
 JSON &JSON::set(const unsigned value) noexcept {
-    return set(static_cast<uint64_t>(value));
+    return set(std::uint64_t(value));
 }
 
 JSON &JSON::set(Object &&object) {
@@ -599,11 +599,11 @@ JSON &JSON::operator=(const double value) noexcept {
     return set(value);
 }
 
-JSON &JSON::operator=(const int64_t value) noexcept {
+JSON &JSON::operator=(const std::int64_t value) noexcept {
     return set(value);
 }
 
-JSON &JSON::operator=(const uint64_t value) noexcept {
+JSON &JSON::operator=(const std::uint64_t value) noexcept {
     return set(value);
 }
 
@@ -641,7 +641,7 @@ void JSON::toString(std::string &string, const unsigned indentation, const unsig
         const unsigned floatSize  = toStringSize(indentation, level);
         const std::size_t oldSize = string.size();
 
-        string.append(static_cast<std::size_t>(floatSize), '\0');
+        string.append(std::size_t(floatSize), '\0');
         const int count = std::sprintf(&string[oldSize], "%.*g", std::numeric_limits<double>::max_digits10, m_value.float64);
         assert(count > 0);
         (void)count;
@@ -652,7 +652,7 @@ void JSON::toString(std::string &string, const unsigned indentation, const unsig
         const unsigned int64Size  = toStringSize(indentation, level);
         const std::size_t oldSize = string.size();
 
-        string.append(static_cast<std::size_t>(int64Size), '\0');
+        string.append(std::size_t(int64Size), '\0');
         const int count = std::sprintf(&string[oldSize], "%" PRIi64, m_value.int64);
         assert(count > 0);
         (void)count;
@@ -663,7 +663,7 @@ void JSON::toString(std::string &string, const unsigned indentation, const unsig
         const unsigned uint64Size = toStringSize(indentation, level);
         const std::size_t oldSize = string.size();
 
-        string.append(static_cast<std::size_t>(uint64Size), '\0');
+        string.append(std::size_t(uint64Size), '\0');
         const int count = std::sprintf(&string[oldSize], "%" PRIu64, m_value.uint64);
         assert(count > 0);
         (void)count;
@@ -695,13 +695,13 @@ unsigned JSON::toStringSize(const unsigned indentation, const unsigned level) co
         return m_value.string.toStringSize();
 
     case Type::FLOAT64:
-        return static_cast<unsigned>(std::snprintf(nullptr, 0, "%.*g", std::numeric_limits<double>::max_digits10, m_value.float64));
+        return unsigned(std::snprintf(nullptr, 0, "%.*g", std::numeric_limits<double>::max_digits10, m_value.float64));
 
     case Type::INT64:
-        return static_cast<unsigned>(std::snprintf(nullptr, 0, "%" PRIi64, m_value.int64));
+        return unsigned(std::snprintf(nullptr, 0, "%" PRIi64, m_value.int64));
 
     case Type::UINT64:
-        return static_cast<unsigned>(std::snprintf(nullptr, 0, "%" PRIu64, m_value.uint64));
+        return unsigned(std::snprintf(nullptr, 0, "%" PRIu64, m_value.uint64));
 
     case Type::OBJECT:
         return m_value.object.toStringSize(indentation, level);
@@ -733,10 +733,10 @@ bool JSON::toFile(const char *const path, const unsigned indentation) const {
     assert(path[0] != '\0');
 
     std::string string = toString(indentation);
-    assert(string.size() < static_cast<std::size_t>(std::numeric_limits<unsigned>::max()));
+    assert(string.size() < std::size_t(std::numeric_limits<unsigned>::max()));
 
     FileContents fileContents;
-    fileContents.setData(&string[0], static_cast<unsigned>(string.size()));
+    fileContents.setData(&string[0], unsigned(string.size()));
     const bool success = fileContents.put(path) == FileContents::Error::NONE;
     fileContents.releaseData();
 
@@ -769,10 +769,10 @@ std::string JSON::toString(const unsigned indentation) const {
     const unsigned totalSize = toStringSize(indentation);
     assert(totalSize > 0U);
 
-    string.reserve(static_cast<std::size_t>(totalSize + 1U));
+    string.reserve(std::size_t(totalSize + 1U));
     
     toString(string, indentation, 1U);
-    assert(string.size() == static_cast<std::size_t>(totalSize));
+    assert(string.size() == std::size_t(totalSize));
 
     return string;
 }

@@ -318,7 +318,7 @@ bool Lexer::readKeyword(Token &token) noexcept {
     };
 
     for(const auto &keyword : keywords) {
-        if(m_position + static_cast<unsigned>(keyword.value.size()) - 1U >= m_length) {
+        if(m_position + unsigned(keyword.value.size()) - 1U >= m_length) {
             continue;
         }
 
@@ -326,16 +326,16 @@ bool Lexer::readKeyword(Token &token) noexcept {
             continue;
         }
         
-        if(static_cast<size_t>(m_position) + keyword.value.size() >= m_length) {
+        if(std::size_t(m_position) + keyword.value.size() >= m_length) {
             token.type   = keyword.type;
-            token.length = static_cast<unsigned>(keyword.value.size());
+            token.length = unsigned(keyword.value.size());
             return true;
         }
 
         const char nextChar = m_data[m_position + keyword.value.size()];
         if(Util::isWhitespace(nextChar) || Util::isDelimiter(nextChar)) {
             token.type   = keyword.type;
-            token.length = static_cast<unsigned>(keyword.value.size());
+            token.length = unsigned(keyword.value.size());
             return true;
         }
         

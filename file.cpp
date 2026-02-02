@@ -24,7 +24,7 @@ FileContents::Error FileContents::fopen(FILE **const file, const char *const pat
 
     wchar_t *wpath;
     try {
-        wpath = reinterpret_cast<wchar_t*>(FileContents::Allocator::s_allocate(static_cast<std::size_t>(wideLength) * sizeof(wchar_t)));
+        wpath = reinterpret_cast<wchar_t*>(FileContents::Allocator::s_allocate(std::size_t(wideLength) * sizeof(wchar_t)));
     } catch(...) {
         return FileContents::Error::MEMORY;
     }
@@ -42,23 +42,23 @@ FileContents::Error FileContents::fopen(FILE **const file, const char *const pat
         : FileContents::Error::NONE;
 }
 
-int FileContents::fseek(std::FILE *const file, const int64_t offset, const int origin) noexcept {
+int FileContents::fseek(std::FILE *const file, const std::int64_t offset, const int origin) noexcept {
 #ifdef _WIN32
-    return _fseeki64(file, static_cast<__int64>(offset), origin);
+    return _fseeki64(file, (__int64)(offset), origin);
 #elif LONG_MAX < LLONG_MAX
-    return fseeko(file, static_cast<off_t>(offset), origin);
+    return fseeko(file, (off_t)(offset), origin);
 #else
-    return std::fseek(file, static_cast<long>(offset), origin);
+    return std::fseek(file, long(offset), origin);
 #endif
 }
 
 std::int64_t FileContents::ftell(std::FILE *const file) noexcept {
 #ifdef _WIN32
-    return static_cast<std::int64_t>(_ftelli64(file));
+    return std::int64_t(_ftelli64(file));
 #elif LONG_MAX < LLONG_MAX
-    return static_cast<std::int64_t>(ftello(file));
+    return std::int64_t(ftello(file));
 #else
-    return static_cast<std::int64_t>(std::ftell(file));
+    return std::int64_t(std::ftell(file));
 #endif    
 }
 
@@ -125,9 +125,9 @@ FileContents::Error FileContents::put(const char *const path) const noexcept {
     if(std::fwrite(
         m_data.get(),
         sizeof(m_data.get()[0]),
-        static_cast<std::size_t>(m_length),
+        std::size_t(m_length),
         file
-    ) != static_cast<std::size_t>(m_length)) {
+    ) != std::size_t(m_length)) {
         std::fclose(file);
         return FileContents::Error::FWRITE;
     }
@@ -163,7 +163,7 @@ FileContents FileContents::get(const char *const path) noexcept {
         return fileContents;
     }
 
-    if(length >= static_cast<std::int64_t>(std::numeric_limits<unsigned>::max())) {
+    if(length >= std::int64_t(std::numeric_limits<unsigned>::max())) {
         fileContents.setError(FileContents::Error::TOO_LARGE);
         return fileContents;
     }
@@ -176,7 +176,7 @@ FileContents FileContents::get(const char *const path) noexcept {
     unsigned char *data;
     try {
         //the buffer has 1 extra byte allocated in case a null terminated string is required
-        data = FileContents::Allocator::s_allocate(static_cast<unsigned>(length) + 1U);
+        data = FileContents::Allocator::s_allocate(unsigned(length) + 1U);
     } catch(...) {
         fileContents.setError(FileContents::Error::MEMORY);
         return fileContents;
@@ -185,16 +185,16 @@ FileContents FileContents::get(const char *const path) noexcept {
     if(std::fread(
         data,
         sizeof(data[0]),
-        static_cast<std::size_t>(length),
+        std::size_t(length),
         file
-    ) !=  static_cast<std::size_t>(length)) {
+    ) !=  std::size_t(length)) {
         fileContents.setError(FileContents::Error::FREAD);
         FileContents::Allocator::s_deallocate(data);
         return fileContents;
     }
     data[length] = '\0';
 
-    fileContents.setData(data, static_cast<unsigned>(length));
+    fileContents.setData(data, unsigned(length));
     
     return fileContents;
 }

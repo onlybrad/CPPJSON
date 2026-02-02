@@ -43,7 +43,7 @@ bool Object::reserve(unsigned capacity) noexcept {
     }
 
     try {
-        m_data.reserve(static_cast<std::size_t>(capacity));
+        m_data.reserve(std::size_t(capacity));
         return true;
     }
     catch (...) {
@@ -483,11 +483,11 @@ bool Object::set(const String &key, const std::uint64_t value) noexcept {
 }
 
 bool Object::set(const String &key, const int value) noexcept {
-    return set(key, static_cast<std::int64_t>(value));
+    return set(key, std::int64_t(value));
 }
 
 bool Object::set(const String &key, const unsigned value) noexcept {
-    return set(key, static_cast<std::uint64_t>(value));
+    return set(key, std::uint64_t(value));
 }
 
 bool Object::set(const String &key, Object &&value) noexcept {
@@ -527,11 +527,11 @@ bool Object::set(String &&key, const std::uint64_t value) noexcept {
 }
 
 bool Object::set(String &&key, const int value) noexcept {
-    return set(std::move(key), static_cast<std::int64_t>(value));
+    return set(std::move(key), std::int64_t(value));
 }
 
 bool Object::set(String &&key, const unsigned value) noexcept {
-    return set(std::move(key), static_cast<std::uint64_t>(value));
+    return set(std::move(key), std::uint64_t(value));
 }
 
 bool Object::set(String &&key, Object &&value) noexcept {
@@ -570,7 +570,7 @@ bool Object::has(const String &key) const noexcept {
 }
 
 unsigned Object::size() const noexcept {
-    return static_cast<unsigned>(m_data.size());
+    return unsigned(m_data.size());
 }
 
 const JSON &Object::operator[](const std::string &key) const noexcept {
@@ -639,7 +639,7 @@ void Object::toString(std::string &string, const unsigned indentation,const unsi
     }
 
     if(indentation > 0U) {
-        std::size_t whitespaceSize = std::size_t(indentation * level);
+        std::size_t whitespaceSize(indentation * level);
     
         for(const KeyValueType &keyValue : *this) {
             string.push_back('\n');

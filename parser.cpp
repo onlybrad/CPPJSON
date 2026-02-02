@@ -298,11 +298,11 @@ Error Parser::parseNumber(JSON &json, Tokens &tokens) noexcept {
     char number[1 << 9] = {};
 
     Token &token = *tokens.currentToken;
-    if(static_cast<std::size_t>(token.length) >= sizeof(number)) {
+    if(std::size_t(token.length) >= sizeof(number)) {
         return Error::TOO_LARGE;
     }
 
-    std::memcpy(number, token.value, static_cast<size_t>(token.length));
+    std::memcpy(number, token.value, std::size_t(token.length));
 
     if(token.type == Token::Type::FLOAT) {
         const double value = Util::parseFloat64(number, success);
@@ -314,12 +314,12 @@ Error Parser::parseNumber(JSON &json, Tokens &tokens) noexcept {
         if(token.type == Token::Type::SCIENTIFIC_INT) {
             const long double value = Util::parseLongDouble(number, success);
             if(!success 
-            || value < static_cast<long double>(std::numeric_limits<std::int64_t>::min()) 
-            || value > static_cast<long double>(std::numeric_limits<std::int64_t>::max())
+            || value < (long double)(std::numeric_limits<std::int64_t>::min()) 
+            || value > (long double)(std::numeric_limits<std::int64_t>::max())
             ){
                 return Error::INT64;
             }
-            json.set(static_cast<std::int64_t>(value));
+            json.set(std::int64_t(value));
         } else {
             const std::int64_t value = Util::parseInt64(number, success);
             if(!success) {
@@ -329,10 +329,10 @@ Error Parser::parseNumber(JSON &json, Tokens &tokens) noexcept {
         }
     } else if(token.type == Token::Type::SCIENTIFIC_INT) {
         const long double value = Util::parseLongDouble(number, success);
-        if(!success || value > static_cast<long double>(std::numeric_limits<std::uint64_t>::max())) {
+        if(!success || value > (long double)(std::numeric_limits<std::uint64_t>::max())) {
             return Error::UINT64;
         }
-        json.set(static_cast<std::uint64_t>(value));
+        json.set(std::uint64_t(value));
     } else {
         const uint64_t value = Util::parseUint64(number, success);
         if(!success) {
@@ -387,11 +387,11 @@ ParserResult Parser::init() noexcept {
 ParserResult Parser::parse(const std::string &data) noexcept {
     assert(data[0] != '\0');
 
-    if(data.size() >= static_cast<std::size_t>(std::numeric_limits<unsigned>::max())) {
+    if(data.size() >= std::size_t(std::numeric_limits<unsigned>::max())) {
         return ParserResult::fromError(Error::TOO_LARGE);
     }
 
-    return parse(data.c_str(), static_cast<unsigned>(data.size()));
+    return parse(data.c_str(), unsigned(data.size()));
 }
 
 ParserResult Parser::parse(const char *const data) noexcept {
@@ -399,11 +399,11 @@ ParserResult Parser::parse(const char *const data) noexcept {
     assert(data[0] != '\0');
 
     const size_t length = std::strlen(data);
-    if(length >= static_cast<std::size_t>(std::numeric_limits<unsigned>::max())) {
+    if(length >= std::size_t(std::numeric_limits<unsigned>::max())) {
         return ParserResult::fromError(Error::TOO_LARGE);
     }
 
-    return parse(data, static_cast<unsigned>(length));
+    return parse(data, unsigned(length));
 }
 
 ParserResult Parser::parse(const char *const data, const unsigned length) noexcept {
@@ -439,7 +439,7 @@ ParserResult Parser::parse(const char *const data, const unsigned length) noexce
     } else {
         Result<unsigned> result = Util::safeMult(
             counters.object_elements,
-            static_cast<unsigned>(sizeof(Object::ContainerType))
+            unsigned(sizeof(Object::ContainerType))
         );
         if(!result.isSuccess()) {
             return ParserResult::fromError(Error::TOO_LARGE);
@@ -448,7 +448,7 @@ ParserResult Parser::parse(const char *const data, const unsigned length) noexce
 
         result = Util::safeMult(
             counters.array_elements,
-            static_cast<unsigned>(sizeof(Array::ContainerType))
+            unsigned(sizeof(Array::ContainerType))
         );
         if(!result.isSuccess()) {
             return ParserResult::fromError(Error::TOO_LARGE);
@@ -457,7 +457,7 @@ ParserResult Parser::parse(const char *const data, const unsigned length) noexce
 
         result = Util::safeMult(
             counters.chars,
-            static_cast<unsigned>(sizeof(String::ContainerType))
+            unsigned(sizeof(String::ContainerType))
         );
         if(!result.isSuccess()) {
             return ParserResult::fromError(Error::TOO_LARGE);
@@ -557,22 +557,22 @@ bool Parser::initArenas(const ArenaSizes arenaSizes, const unsigned maxNodes) no
         {
             "Object Arena",
             &m_arenas->object,
-            static_cast<unsigned>(sizeof(Object::ContainerType))
+            unsigned(sizeof(Object::ContainerType))
         },
         {
             "Array Arena",
             &m_arenas->array,
-            static_cast<unsigned>(sizeof(Array::ContainerType))
+            unsigned(sizeof(Array::ContainerType))
         },
         {
             "String Arena",
             &m_arenas->string,
-            static_cast<unsigned>(sizeof(String::ContainerType))
+            unsigned(sizeof(String::ContainerType))
         },
         {
             "JSON Nodes Arena",
             &m_arenas->root,
-            static_cast<unsigned>(sizeof(RootNode))
+            unsigned(sizeof(RootNode))
         }
     }};
 

@@ -140,7 +140,7 @@ Result<TValue, TError> &Result<TValue, TError>::operator=(const Result<TValue, T
 template<typename TValue, typename TError>
 Result<TValue&, TError> &Result<TValue&, TError>::operator=(const Result<TValue&, TError> &result) noexcept {
     if(result.m_success) {
-        setRef(result.m_value);
+        setRef(*result.m_value);
     } else {
         setError(result.m_error);
     }

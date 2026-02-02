@@ -43,7 +43,7 @@ bool Array::reserve(unsigned capacity) noexcept {
     }
 
     try {
-        m_data.reserve(static_cast<std::size_t>(capacity));
+        m_data.reserve(std::size_t(capacity));
     } catch (...) {
         return false;
     }
@@ -112,7 +112,7 @@ Result<const Array&> Array::getArray(const unsigned index) const noexcept {
 }
 
 JSON &Array::unsafeGet(const unsigned index) noexcept {
-    assert(static_cast<std::size_t>(index) < m_data.size());
+    assert(std::size_t(index) < m_data.size());
     return m_data[index];
 }
 
@@ -149,7 +149,7 @@ bool Array::unsafeGetBool(const unsigned index) const noexcept {
 }
 
 const JSON &Array::unsafeGet(const unsigned index) const noexcept {
-    assert(static_cast<std::size_t>(index) < m_data.size());
+    assert(std::size_t(index) < m_data.size());
     return m_data[index];
 }
 
@@ -182,11 +182,11 @@ bool Array::set(const unsigned index, const std::uint64_t value) noexcept {
 }
 
 bool Array::set(const unsigned index, const int value) noexcept { 
-    return set(index, static_cast<std::int64_t>(value));
+    return set(index, std::int64_t(value));
 }
 
 bool Array::set(const unsigned index, const unsigned value) noexcept { 
-    return set(index, static_cast<std::uint64_t>(value));
+    return set(index, std::uint64_t(value));
 }
 
 bool Array::set(const unsigned index, Object &&value) noexcept {
@@ -222,11 +222,11 @@ bool Array::push(const std::uint64_t value) noexcept {
 }
 
 bool Array::push(const int value) noexcept {
-    return push(static_cast<std::int64_t>(value));
+    return push(std::int64_t(value));
 }
 
 bool Array::push(const unsigned value) noexcept {
-    return push(static_cast<std::uint64_t>(value));
+    return push(std::uint64_t(value));
 }
 
 bool Array::push(Object &&value) noexcept {
@@ -268,7 +268,7 @@ const JSON &Array::unsafeBack() const noexcept {
 }
 
 unsigned Array::size() const noexcept {
-    return static_cast<unsigned>(m_data.size());
+    return unsigned(m_data.size());
 }
 
 JSON &Array::operator[](const unsigned index) {
@@ -312,7 +312,7 @@ void Array::toString(std::string &string, const unsigned indentation, const unsi
     }
 
     if(indentation > 0U) {
-        std::size_t whitespaceSize = std::size_t(indentation * level);
+        std::size_t whitespaceSize(indentation * level);
 
         for(const JSON &json : *this) {
             string.push_back('\n');

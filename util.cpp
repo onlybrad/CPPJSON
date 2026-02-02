@@ -48,7 +48,7 @@ bool isDigit(const char c) noexcept {
 }
 
 bool isControlChar(const char c) noexcept {
-    return c >= static_cast<char>(0x00) && c <= static_cast<char>(0x1F);
+    return c >= char(0x00) && c <= char(0x1F);
 }
 
 std::uint16_t hexToUtf16(const char *const codepoint, bool &success) noexcept {
@@ -59,10 +59,13 @@ std::uint16_t hexToUtf16(const char *const codepoint, bool &success) noexcept {
     char *endPtr;
     errno = 0;
 
-    const std::uint16_t ret = static_cast<std::uint16_t>(std::strtoul(hex, &endPtr, 16));
+    unsigned long num = std::strtoul(hex, &endPtr, 16);
+    assert(num <= std::numeric_limits<std::uint16_t>::max());
+
+    const std::uint16_t ret = static_cast<std::uint16_t>(num);
     if(endPtr == hex || *endPtr != '\0' || errno == ERANGE) {
         success = false;
-        return static_cast<std::uint16_t>(0U);
+        return std::uint16_t(0U);
     }
 
     success = true;
@@ -73,16 +76,16 @@ char *utf16ToUtf8(char *const destination, const std::uint16_t high) noexcept {
     assert(destination != nullptr);
 
     if(high <= 0x7F) {
-        destination[0] = static_cast<char>((high & 0x7f));
+        destination[0] = char((high & 0x7f));
         destination[1] = '\0';
     } else if(high <= 0x7FF) {
-        destination[0] = static_cast<char>(((high  >> 6)         | 0xC0));
-        destination[1] = static_cast<char>((((high >> 0) & 0x3F) | 0x80));
+        destination[0] = char(((high  >> 6)         | 0xC0));
+        destination[1] = char((((high >> 0) & 0x3F) | 0x80));
         destination[2] = '\0';
     } else {
-        destination[0] = static_cast<char>(((high  >> 12)        | 0xE0));
-        destination[1] = static_cast<char>((((high >> 6) & 0x3F) | 0x80));
-        destination[2] = static_cast<char>((((high >> 0) & 0x3F) | 0x80));
+        destination[0] = char(((high  >> 12)        | 0xE0));
+        destination[1] = char((((high >> 6) & 0x3F) | 0x80));
+        destination[2] = char((((high >> 0) & 0x3F) | 0x80));
         destination[3] = '\0';
     }
 
@@ -100,12 +103,12 @@ bool isValidUtf16(const std::uint16_t high, const std::uint16_t low) noexcept {
 char *utf16ToUtf8(char *const destination, const std::uint16_t high, const std::uint16_t low) noexcept {
     assert(destination != nullptr);
 
-    const std::uint32_t codepoint = static_cast<std::uint32_t>((((high - 0xD800) << 10) | (low - 0xDC00)) + 0x10000);
+    const std::uint32_t codepoint((((high - 0xD800) << 10) | (low - 0xDC00)) + 0x10000);
 
-    destination[0] = static_cast<char>(((codepoint  >> 18)         | 0xF0));
-    destination[1] = static_cast<char>((((codepoint >> 12) & 0x3F) | 0x80));
-    destination[2] = static_cast<char>((((codepoint >> 6)  & 0x3F) | 0x80));
-    destination[3] = static_cast<char>((((codepoint >> 0)  & 0x3F) | 0x80));
+    destination[0] = char(((codepoint  >> 18)         | 0xF0));
+    destination[1] = char((((codepoint >> 12) & 0x3F) | 0x80));
+    destination[2] = char((((codepoint >> 6)  & 0x3F) | 0x80));
+    destination[3] = char((((codepoint >> 0)  & 0x3F) | 0x80));
     destination[4] = '\0';
 
     return destination;
@@ -149,10 +152,13 @@ std::uint64_t parseUint64(const char *const str, bool &success) noexcept {
     char *endPtr;
     errno = 0;
 
-    const uint64_t ret = std::strtoull(str, &endPtr, 10);
+    const unsigned long long num = std::strtoull(str, &endPtr, 10);
+    assert(num <= std::numeric_limits<std::uint64_t>::max());
+
+    const std::uint64_t ret = static_cast<std::uint64_t>(num);
     if(endPtr == str || *endPtr != '\0' || errno == ERANGE) {
         success = false;
-        return 0;
+        return std::uint64_t(0U);
     }
 
     success = true;
@@ -165,10 +171,13 @@ std::int64_t parseInt64(const char *const str, bool &success) noexcept {
     char *endPtr;
     errno = 0;
     
-    const std::int64_t ret = std::strtoll(str, &endPtr, 10);
+    const long long num = std::strtoll(str, &endPtr, 10);
+    assert(num <= std::numeric_limits<std::int64_t>::max());
+
+    const std::int64_t ret = static_cast<std::int64_t>(num);
     if(endPtr == str || *endPtr != '\0' || errno == ERANGE) {
         success = false;
-        return 0;
+        return std::int64_t(0);
     }
 
     success = true;
@@ -192,13 +201,13 @@ std::uint64_t usecTimestamp() noexcept {
 #if defined(__MINGW32__) || !defined(_WIN32)
     struct timeval current_time;
     gettimeofday(&current_time, nullptr);
-    return static_cast<std::uint64_t>(current_time.tv_sec * 1000000L + current_time.tv_usec);
+    return std::uint64_t(current_time.tv_sec * 1000000L + current_time.tv_usec);
 #elif defined(_WIN32)
     FILETIME ft;
     GetSystemTimeAsFileTime(&ft);
-    std::uint64_t tt = static_cast<std::uint64_t>(ft.dwHighDateTime);
+    std::uint64_t tt = std::uint64_t(ft.dwHighDateTime);
     tt <<= 32ULL;
-    tt |= static_cast<std::uint64_t>(ft.dwLowDateTime);
+    tt |= std::uint64_t(ft.dwLowDateTime);
     tt /= 10ULL;
     tt -= 11644473600000000ULL;
     return tt;
