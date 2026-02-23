@@ -43,10 +43,6 @@ bool isDelimiter(const char c) noexcept {
     }
 }
 
-bool isDigit(const char c) noexcept {
-    return c >= '0' && c <= '9';
-}
-
 bool isControlChar(const char c) noexcept {
     return c >= char(0x00) && c <= char(0x1F);
 }

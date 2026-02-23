@@ -1,5 +1,6 @@
 #include <cassert>
 #include <cstring>
+#include <cctype>
 #include <algorithm>
 #include <stack>
 #include <vector>
@@ -230,7 +231,7 @@ bool Lexer::readNumber(Token &token) noexcept {
     token.type  = Token::Type::INT;
 
     //0 as the first character is only allowed if it's followed by a dot or by a non-digit character
-    if(data[0] == '0' && length > 1U && Util::isDigit(data[1])) {
+    if(data[0] == '0' && length > 1U && std::isdigit(data[1])) {
         success    = false;
         token.type = Token::Type::INVALID;
 

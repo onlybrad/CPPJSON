@@ -14,7 +14,6 @@ namespace Util {
 
 bool          isWhitespace   (char c)                                         noexcept;
 bool          isDelimiter    (char c)                                         noexcept;
-bool          isDigit        (char c)                                         noexcept;
 bool          isControlChar  (char c)                                         noexcept;
 std::uint16_t hexToUtf16     (const char *unicode, bool &success)             noexcept;
 char*         utf16ToUtf8    (char *destination, uint16_t codepoint)          noexcept;
