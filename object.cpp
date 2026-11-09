@@ -38,7 +38,7 @@ Object &Object::operator=(Object &&object) noexcept {
 }
 
 bool Object::reserve(unsigned capacity) noexcept {
-    if (capacity < Object::MINIMUM_CAPACITY) {
+    if(capacity < Object::MINIMUM_CAPACITY) {
         capacity = Object::MINIMUM_CAPACITY;
     }
 

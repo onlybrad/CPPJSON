@@ -113,7 +113,7 @@ public:
         UINT64,
         ARRAY,
         OBJECT,
-        NUL,
+        NULL_,
         BOOL
     };
                      
@@ -215,11 +215,12 @@ public:
     static Result<std::string> format(const char*,        unsigned indentation = 0U);
 
 private:
-    Type  m_type = Type::NUL;
+    Type  m_type = Type::NULL_;
     Value m_value;
     
-    void destructor() noexcept;
+    void destructor()       noexcept;
     void copy(const JSON&);
+    void move(JSON&&)       noexcept;
 
     template<typename TClass, Type type, TClass Value::*member>
     Result<TClass&> asRef() noexcept {

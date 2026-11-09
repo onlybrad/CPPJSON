@@ -512,7 +512,7 @@ static void testCreatePrimitives() {
     assert(json.asBool().getValue() == value4);
 
     json.set(nullptr);
-    assert(json.getType() == JSON::Type::NUL);
+    assert(json.getType() == JSON::Type::NULL_);
 }
 
 static void testCreateArray() {

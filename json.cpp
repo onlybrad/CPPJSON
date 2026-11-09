@@ -80,10 +80,8 @@ JSON::JSON(const JSON &json) {
     copy(json);
 }
 
-JSON::JSON(JSON &&json) noexcept : 
-m_type(json.m_type) {
-    std::memcpy(static_cast<void*>(&m_value), &json.m_value, sizeof(m_value));
-    json.set();
+JSON::JSON(JSON &&json) noexcept {
+    move(std::move(json));
 }
 
 JSON::JSON(const double value) noexcept :
@@ -115,7 +113,7 @@ m_value(value)
 {}
 
 JSON::JSON(std::nullptr_t) noexcept :
-m_type(Type::NUL),
+m_type(Type::NULL_),
 m_value(nullptr)
 {}
 
@@ -202,7 +200,7 @@ bool JSON::operator==(const JSON &json) const noexcept {
 
         return true;
 
-    case Type::NUL:
+    case Type::NULL_:
         return true;
 
     case Type::BOOL:
@@ -317,7 +315,7 @@ Result<const Array&> JSON::asArray() const noexcept {
 }
 
 Result<std::nullptr_t> JSON::asNull() const noexcept { 
-    return asValue<std::nullptr_t, Type::NUL, &Value::null>();
+    return asValue<std::nullptr_t, Type::NULL_, &Value::null>();
 }
 
 Result<bool> JSON::asBool() const noexcept {
@@ -467,11 +465,70 @@ void JSON::copy(const JSON &json) {
     case Type::OBJECT:
         m_value = json.m_value.object;
         break;
-        
-    default:
-        std::memcpy(static_cast<void*>(&m_value), &json.m_value, sizeof(m_value));
+
+    case Type::FLOAT64:
+        m_value = json.m_value.float64;
+        break;
+
+    case Type::INT64:
+        m_value = json.m_value.int64;
+        break;
+
+    case Type::UINT64:
+        m_value = json.m_value.uint64;
+        break;
+
+    case Type::BOOL:
+        m_value = json.m_value.boolean;
+        break;
+
+    case Type::NULL_:
+        m_value = json.m_value.null;
         break;
     }    
+}
+
+void JSON::move(JSON &&json) noexcept {
+    destructor();
+
+    m_type = json.m_type;
+
+    switch(m_type) {
+    case Type::STRING:
+        m_value = std::move(json.m_value.string);
+        break;
+
+    case Type::ARRAY:
+        m_value = std::move(json.m_value.array);
+        break;
+
+    case Type::OBJECT:
+        m_value = std::move(json.m_value.object);
+        break;
+
+    case Type::FLOAT64:
+        m_value = json.m_value.float64;
+        break;
+
+    case Type::INT64:
+        m_value = json.m_value.int64;
+        break;
+
+    case Type::UINT64:
+        m_value = json.m_value.uint64;
+        break;
+
+    case Type::BOOL:
+        m_value = json.m_value.boolean;
+        break;
+
+    case Type::NULL_:
+        m_value = json.m_value.null;
+        break;
+    }
+
+    json.m_value = nullptr;  
+    json.m_type  = Type::NULL_;
 }
 
 JSON &JSON::set(const std::string &value, const String::Allocator &allocator) {
@@ -495,12 +552,9 @@ JSON &JSON::set(const String &value) {
     return set(value.getCString(), value.getAllocator());
 }
 
-JSON &JSON::set(JSON &&value) {
-    if (this != &value) {
-        destructor();
-        m_type = value.m_type;
-        std::memcpy(static_cast<void*>(&m_value), &value.m_value, sizeof(m_value));
-        value.set();
+JSON &JSON::set(JSON &&json) {
+    if(this != &json) {
+        move(std::move(json));
     }
 
     return *this;
@@ -573,7 +627,7 @@ JSON &JSON::set(Array &&array) {
 
 JSON &JSON::set(const std::nullptr_t) noexcept {
     destructor();
-    m_type       = Type::NUL;
+    m_type       = Type::NULL_;
     m_value.null = nullptr;
 
     return *this;
@@ -678,7 +732,7 @@ void JSON::toString(std::string &string, const unsigned indentation, const unsig
         m_value.object.toString(string, indentation, level);
         break;
 
-    case Type::NUL:
+    case Type::NULL_:
         string += "null";
         break;
 
@@ -709,7 +763,7 @@ unsigned JSON::toStringSize(const unsigned indentation, const unsigned level) co
     case Type::ARRAY:
         return m_value.array.toStringSize(indentation, level);
 
-    case Type::NUL:
+    case Type::NULL_:
         return unsigned(static_strlen("null"));
 
     case Type::BOOL:
@@ -800,12 +854,12 @@ boolean(value)
 JSON::Value::~Value() noexcept {}
 
 JSON::Value &JSON::Value::operator=(const String &value) {
-    string = value;
+    new (&string) String(value);
     return *this;
 }
 
 JSON::Value &JSON::Value::operator=(String &&value) noexcept {
-    string = std::move(value);
+    new (&string) String(std::move(value));
     return *this;
 }
 
@@ -825,22 +879,22 @@ JSON::Value &JSON::Value::operator=(const std::uint64_t value) noexcept {
 }
 
 JSON::Value &JSON::Value::operator=(const Object &value) {
-    object = value;
+    new (&object) Object(value);
     return *this;
 }
 
 JSON::Value &JSON::Value::operator=(Object &&value) noexcept {
-    object = std::move(value);
+    new (&object) Object(std::move(value));
     return *this;
 }
 
 JSON::Value &JSON::Value::operator=(const Array &value) {
-    array = value;
+    new (&array) Array(value);
     return *this;
 }
 
 JSON::Value &JSON::Value::operator=(Array &&value) noexcept {
-    array = std::move(value);
+    new (&array) Array(std::move(value));
     return *this;
 }
 

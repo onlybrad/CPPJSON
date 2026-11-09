@@ -184,7 +184,7 @@ int main() {
     case JSON::Type::BOOL:
         const Result<bool> boolResult = json.asBool();
         break;
-    case JSON::Type::NUL:
+    case JSON::Type::NUL_:
         const Result<std::nullptr_t> nullResult = json.asNull();
         break;
     }
@@ -618,7 +618,7 @@ int main() {
         //... Array index 10 exists
     }
 
-    //if the Array is not const, the bracket operator will populate all the indices between the last one and the index provided with JSON objects with the type JSON::Type::NUL then return a reference to that last one. This operator can throw an exception if memory allocation fails
+    //if the Array is not const, the bracket operator will populate all the indices between the last one and the index provided with JSON objects with the type JSON::Type::NUL_ then return a reference to that last one. This operator can throw an exception if memory allocation fails
     Array &array = ...;
     const JSON &json = array[10U];
 
@@ -727,7 +727,7 @@ int main() {
 
 ### Set Value at Index.
 
-If the index is greater than the length of the array, all JSON object values between last element and the index will be zeroed (JSON::Type == JSON::Type::NUL)
+If the index is greater than the length of the array, all JSON object values between last element and the index will be zeroed (JSON::Type == JSON::Type::NUL_)
 
 ```cpp
 #include <cppjson.hpp>
@@ -740,12 +740,12 @@ int main() {
     JSON  &someValue = ...;
     Array &array = ...;
     
-    //the bracket operator will populate all the indices between the last one and the index provided with JSON objects with the type JSON::Type::NUL then return a reference to that last one. Can throw if memory allocation fails.
+    //the bracket operator will populate all the indices between the last one and the index provided with JSON objects with the type JSON::Type::NUL_ then return a reference to that last one. Can throw if memory allocation fails.
     array[10U] = std::move(someValue);
     array[10U] = 10U;
     array[10U] = false;
 
-    //will populate all the indices between the last one and the index provided with JSON objects with the type JSON::Type::NUL, return false if the allocation fails
+    //will populate all the indices between the last one and the index provided with JSON objects with the type JSON::Type::NUL_, return false if the allocation fails
     if(array.set(10U, std::move(someValue))) {
         //no allocation or successful allocation
     }
